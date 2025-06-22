@@ -63,7 +63,7 @@
       "buildResources": "assets"
     },
     "win": {
-      "icon": "icon.ico",
+      "icon": "../dist/controller.ico",
       "target": "nsis"
     }
   }
