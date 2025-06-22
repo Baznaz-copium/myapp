@@ -2,15 +2,24 @@
   "name": "ps4-rental-management",
   "private": true,
   "version": "1.0.0",
+  "description": "PlayStation Rental Management App",
+  "author": "Baznaz <baznazweb@gmail.com",
   "type": "module",
+  "main": "main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:react": "vite build",
+    "build:electron": "electron-builder",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron": "electron ."
   },
   "dependencies": {
+    "axios": "^1.10.0",
     "date-fns": "^2.30.0",
+    "express": "^5.1.0",
+    "html2pdf.js": "^0.10.3",
     "idb": "^8.0.3",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
@@ -31,6 +40,8 @@
     "@types/three": "^0.177.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
@@ -40,5 +51,20 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
     "vite": "^6.3.5"
+  },
+  "build": {
+    "appId": "com.Baznaz-managment.myapp",
+    "productName": "MyApp",
+    "files": [
+      "dist/**/*",
+      "main.cjs"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "icon": "icon.ico",
+      "target": "nsis"
+    }
   }
 }
