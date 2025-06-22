@@ -15,6 +15,7 @@ import {
 import { useConsumation } from "../context/ConsumationContext";
 import ConsumationReport from "../components/ConsumationReport";
 import toast from "react-hot-toast";
+import { useAuth } from '../context/AuthContext';
 
 function ConsumationPage() {
   const {
@@ -35,6 +36,7 @@ function ConsumationPage() {
   const [addUnitPrice, setAddUnitPrice] = useState(0);
   const [addTotalCost, setAddTotalCost] = useState(0);
   const [addSellPrice, setAddSellPrice] = useState(0);
+  const { user } = useAuth();
 
   const [sellModal, setSellModal] = useState<{
     id: number;
@@ -182,29 +184,41 @@ function ConsumationPage() {
   return (
     <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
       {/* Revenue Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-green-700/80 rounded-xl p-6 flex items-center space-x-4 shadow-lg">
-          <ShoppingCart className="w-10 h-10 text-green-200" />
-          <div>
-            <div className="text-gray-200 text-sm">Today's Revenue</div>
-            <div className="text-2xl font-bold text-white">{revenue.today} DA</div>
-          </div>
+      {user?.role === 'admin' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[
+            {
+              color: 'green',
+              icon: <ShoppingCart className="w-10 h-10 text-green-200" />,
+              label: "Today's Revenue",
+              value: revenue.today,
+            },
+            {
+              color: 'yellow',
+              icon: <Cookie className="w-10 h-10 text-yellow-200" />,
+              label: 'This Week',
+              value: revenue.week,
+            },
+            {
+              color: 'blue',
+              icon: <CupSoda className="w-10 h-10 text-blue-200" />,
+              label: 'This Month',
+              value: revenue.month,
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className={`bg-${item.color}-600 rounded-xl p-6 flex items-center space-x-4 shadow-lg`}
+            >
+              {item.icon}
+              <div>
+                <div className="text-gray-200 text-sm">{item.label}</div>
+                <div className="text-2xl font-bold text-white">{item.value} DA</div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="bg-yellow-600/80 rounded-xl p-6 flex items-center space-x-4 shadow-lg">
-          <Cookie className="w-10 h-10 text-yellow-200" />
-          <div>
-            <div className="text-gray-200 text-sm">This Week</div>
-            <div className="text-2xl font-bold text-white">{revenue.week} DA</div>
-          </div>
-        </div>
-        <div className="bg-blue-600/80 rounded-xl p-6 flex items-center space-x-4 shadow-lg">
-          <CupSoda className="w-10 h-10 text-blue-200" />
-          <div>
-            <div className="text-gray-200 text-sm">This Month</div>
-            <div className="text-2xl font-bold text-white">{revenue.month} DA</div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Search and filter */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3 bg-gray-900/60 p-4 rounded-xl border border-gray-700">
@@ -227,15 +241,18 @@ function ConsumationPage() {
             <AlertTriangle className="w-4 h-4 text-yellow-400" />
             {outOfStockOnly ? "Show All" : "Out of Stock"}
           </button>
+          {user?.role === 'admin' && (
           <button
             onClick={() => setShowReport(!showReport)}
             className="flex items-center gap-1 bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded-lg"
           >
             <BarChart3 className="w-4 h-4" />
             {showReport ? "Back to Management" : "Report"}
-          </button>
+          </button>                  
+          )}
+
           {/* Show delete if outOfStockOnly is enabled */}
-          {outOfStockOnly && (
+          {outOfStockOnly && user?.role === 'admin' && (
             <button
               onClick={handleDelete}
               className="flex items-center gap-1 bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg disabled:opacity-60"
@@ -263,12 +280,14 @@ function ConsumationPage() {
               <Cookie className="w-6 h-6 mr-2 text-yellow-400" />
               Eatables
             </h2>
+            {user?.role === 'admin' && (
             <button
               className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded flex items-center"
               onClick={() => openAddModal("eatable")}
             >
               <Plus className="w-5 h-5 mr-1" /> Add
-            </button>
+            </button>              
+            )}
           </div>
           <ul
             className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
@@ -370,12 +389,15 @@ function ConsumationPage() {
               <CupSoda className="w-6 h-6 mr-2 text-blue-300" />
               Drinkables
             </h2>
-            <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
-              onClick={() => openAddModal("drinkable")}
-            >
-              <Plus className="w-5 h-5 mr-1" /> Add
-            </button>
+            {user?.role === 'admin' &&(
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
+                onClick={() => openAddModal("drinkable")}
+              >
+                <Plus className="w-5 h-5 mr-1" /> Add
+              </button> 
+            )}
+
           </div>
           <ul
             className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"

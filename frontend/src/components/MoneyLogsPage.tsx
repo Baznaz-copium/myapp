@@ -344,7 +344,7 @@ function MoneyLogsPage() {
       ) : (
         <>
           {/* Add Log Form */}
-          <div className="bg-gradient-to-r from-blue-900/60 to-purple-900/60 rounded-xl p-6 border border-blue-700 flex flex-col md:flex-row gap-4  shadow-lg">
+          <div className="flex flex-wrap  gap-3 bg-gray-900/60 p-4 rounded-xl border border-gray-700">
             <select
               value={form.type}
               onChange={e => setForm(f => ({ ...f, type: e.target.value }))}

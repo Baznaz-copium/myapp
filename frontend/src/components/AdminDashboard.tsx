@@ -750,7 +750,6 @@ const todayRevenue = transactions
                                   const s = sessions.find(s => s.consoleId === console.id && s.running)!;
                                   const now = new Date();
                                   const start = new Date(s.startTime);
-                                  const end = new Date(s.endTime);
                                   const used = Math.floor((now.getTime() - start.getTime()) / 1000);
                                   const total = s.totalMinutes * 60;
                                   const progress = Math.min(100, (used / total) * 100);
