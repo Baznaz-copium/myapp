@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, Cell
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell } from "recharts";
 
 const API_URL = 'http://myapp.test/backend/api/Consumation.php';
 
@@ -9,6 +7,7 @@ const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"
 
 export default function ConsumationReport({ onBack }: { onBack: () => void }) {
   type Sale = {
+    unit_price: number;
     created_at: string;
     name: string;
     type: string;
@@ -40,14 +39,13 @@ export default function ConsumationReport({ onBack }: { onBack: () => void }) {
   }, [type, dateFrom, dateTo]);
 
   // Prepare data for charts
-  const salesByDay = sales.reduce((acc, sale) => {
-    const day = sale.created_at.split(" ")[0];
-    if (!acc[day]) acc[day] = { date: day, revenue: 0, profit: 0 };
-    acc[day].revenue += sale.amount * sale.sell_price;
-    // For profit, you may need to fetch unit_price per sale
-    // Here we just use revenue as a placeholder
-    return acc;
-  }, {} as Record<string, { date: string; revenue: number; profit: number }>);
+const salesByDay = sales.reduce((acc, sale) => {
+  const day = sale.created_at.split(" ")[0];
+  if (!acc[day]) acc[day] = { date: day, revenue: 0, profit: 0 };
+  acc[day].revenue += sale.amount * sale.sell_price; // total revenue
+  acc[day].profit += (sale.sell_price - sale.unit_price) * sale.amount; // profit = (sell - unit) * amount
+  return acc;
+}, {} as Record<string, { date: string; revenue: number; profit: number }>);
 
   const salesByType = sales.reduce((acc, sale) => {
     if (!acc[sale.type]) acc[sale.type] = 0;
@@ -63,7 +61,6 @@ export default function ConsumationReport({ onBack }: { onBack: () => void }) {
   }));
 
   const salesToShow = sales.slice(0, 69); // show up to 69
-  const columns = 3;
   const rows = 3;
   const groups = [];
   for (let i = 0; i < salesToShow.length; i += rows) {
@@ -172,7 +169,7 @@ export default function ConsumationReport({ onBack }: { onBack: () => void }) {
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {pieData.map((entry, index) => (
+                {pieData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

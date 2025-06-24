@@ -1,17 +1,5 @@
 import { useState } from "react";
-import {
-  Plus,
-  X,
-  ShoppingCart,
-  CupSoda,
-  Cookie,
-  Loader2,
-  Settings2,
-  BarChart3,
-  AlertTriangle,
-  Trash2,
-  CheckCircle2,
-} from "lucide-react";
+import {Plus, X, ShoppingCart, CupSoda, Cookie, Loader2, Settings2, BarChart3, AlertTriangle, Trash2, CheckCircle2,} from "lucide-react";
 import { useConsumation } from "../context/ConsumationContext";
 import ConsumationReport from "../components/ConsumationReport";
 import toast from "react-hot-toast";
@@ -26,7 +14,7 @@ function ConsumationPage() {
     revenue,
     fetchConsumables,
     updateConsumable,
-    deleteConsumable, // <- Make sure this exists in context!
+    deleteConsumable, 
   } = useConsumation();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -54,6 +42,7 @@ function ConsumationPage() {
     stock: number;
     price: number;
   } | null>(null);
+  
   const [editStock, setEditStock] = useState(1);
   const [editPrice, setEditPrice] = useState(1);
   const [editLoading, setEditLoading] = useState(false);
@@ -180,6 +169,8 @@ function ConsumationPage() {
   if (showReport) {
     return <ConsumationReport onBack={() => setShowReport(false)} />;
   }
+
+
 
   return (
     <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
