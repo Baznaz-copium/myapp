@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Gamepad2, DollarSign, Mail, Award, Settings as SettingsIcon, Monitor, Play, Square, User , Clock, LogOut, BarChart3, Tv, Plus, AlertTriangle, Trash2, Edit3, Save, X, ShoppingCart } from 'lucide-react';
+import { Gamepad2, DollarSign, Mail, Settings as SettingsIcon, Monitor, Play, Square, User , Clock, LogOut, BarChart3, Tv, Plus, AlertTriangle, Trash2, Edit3, Save, X, ShoppingCart } from 'lucide-react';
 import { useConsoles } from '../context/ConsoleContext';
 import { useSettings } from '../context/SettingsContext';
 import { useTransactions } from '../context/TransactionContext';
@@ -13,18 +13,17 @@ import AdminUsersPage from './UserManagement/UserManagement';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useConsumation } from '../context/ConsumationContext';
-import LeaderProfileModal from './Leaderboard/LeaderBoard.tsx';
-import i18n from '../types/i18n';
 
 function AdminDashboard() {
   const { consoles, addConsole, updateConsole, deleteConsole, fetchConsoles } = useConsoles();
   const { settings } = useSettings();
-  const { transactions, addTransaction, updateTransaction } = useTransactions();
+  const { addTransaction } = useTransactions();
   const { sessions, startSession, stopSession,extendSession, fetchSessions } = useSessions();
+  const { transactions } = useTransactions();
   const [confirm, setConfirm] = useState<{ ids: number[]; show: boolean }>({ ids: [], show: false });
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'consoles' | 'users' | 'mlogs' | 'settings' | 'cash' |  'consumation' |'leaderboard' | 'profile'>('consoles');
+  const [activeTab, setActiveTab] = useState<'consoles' | 'users' | 'mlogs' | 'settings' | 'cash' |  'consumation' | 'profile'>('consoles');
   const [selectedConsole, setSelectedConsole] = useState<number | null>(null);
   const [editingConsole, setEditingConsole] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
@@ -37,7 +36,6 @@ function AdminDashboard() {
   const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -122,17 +120,18 @@ const handleAddConsole = async () => {
     setLoading(false);
   }
 };
-const [sessionTransactionIds, setSessionTransactionIds] = useState<Record<number, number>>({});
-const [showStopConfirm, setShowStopConfirm] = useState(false);
-
-// Start session: Insert transaction with status "active"
+  // Start session
 const handleStartSession = async (minutes: number) => {
   const requireCustomerInfo = !!Number(settings?.requireCustomerInfo);
-  if (requireCustomerInfo && !player_1.trim() && !player_2.trim()) {
-    setPendingMinutes(minutes);
-    setShowCustomerForm(true);
-    return;
-  }
+
+  // Show customer info modal if required and not provided
+if (requireCustomerInfo && !player_1.trim() && !player_2.trim()) {
+  setPendingMinutes(minutes);
+  setShowCustomerForm(true);
+  return;
+}
+
+
   setLoading(true);
   try {
     const now = new Date();
@@ -144,38 +143,12 @@ const handleStartSession = async (minutes: number) => {
     if (selectedConsole === null) {
       throw new Error("No console selected");
     }
-
-    // Insert transaction with status "active"
-    const transactionId = await addTransaction({
-      consoleId: selectedConsole,
-      consoleName: selectedConsoleData?.name || '',
-      player_1: player_1.trim(),
-      player_2: player_2.trim(),
-      startTime,
-      endTime,
-      duration: minutes,
-      amountPaid: 0,
-      amountDue: 0,
-      totalAmount: 0,
-      paymentMethod: '',
-      status: 'Ongoing',
-      createdAt: startTime,
-    });
-
-    // Save transactionId for this console/session
-    setSessionTransactionIds(prev => ({
-      ...prev,
-      ...(selectedConsole !== null && typeof transactionId === 'number'
-        ? { [selectedConsole]: transactionId }
-        : {}),
-    }));
-
     await startSession({
       consoleId: selectedConsole,
-      Player_1: player_1.trim(),
-      Player_2: player_2.trim(),
-      startTime,
-      endTime,
+      player_1: player_1.trim(),
+      player_2: player_2.trim(),
+      startTime: startTime,
+      endTime: endTime,
       totalMinutes: minutes,
     });
 
@@ -196,82 +169,49 @@ const handleStartSession = async (minutes: number) => {
   } finally {
     setLoading(false);
     toast.success(`Console ${selectedConsoleData?.name || 'Console'} rented for ${minutes} minutes!`);
+
   }
 };
 
+// Stop session
 const handleStopSession = async () => {
   if (!selectedConsole || !session) return;
   setLoading(true);
   try {
     const now = new Date();
+    // Calculate actual duration in minutes
     const startTime = new Date(session.startTime);
     const usedMs = now.getTime() - startTime.getTime();
     const usedMinutes = Math.round(usedMs / 60000);
+
+    // Use the lesser of planned or actual duration for price calculation
     const duration = Math.min(session.totalMinutes, usedMinutes);
     const price = ((duration / 60) * (selectedConsoleData?.pricePerHour || 350));
+
+    // Format now as endTime
     const pad = (n: number) => n.toString().padStart(2, '0');
     const endTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-    // Get transactionId for this session
-    const transactionId = sessionTransactionIds[selectedConsole];
-
-    if (transactionId) {
-      // Update the existing transaction to "stopped"
-      await updateTransaction(transactionId, {
-        endTime,
-        duration,
-        amountPaid: price,
-        amountDue: 0,
-        totalAmount: price,
-        paymentMethod: 'cash',
-        status: 'cancelled',
-      });
-    }
-
+    await addTransaction({
+      consoleId: selectedConsole,
+      consoleName: selectedConsoleData?.name || '',
+      player_1: session.player_1,
+      player_2: session.player_2,
+      startTime: session.startTime,
+      endTime: endTime,
+      duration, // Actual or planned duration in minutes
+      amountPaid: price,
+      amountDue: 0,
+      totalAmount: price,
+      paymentMethod: 'cash',
+      status: 'completed',
+      createdAt: now.toISOString().slice(0, 19).replace('T', ' ')
+    });
     await stopSession(session.id, endTime, duration);
     await updateConsole({ id: selectedConsole, name: selectedConsoleData?.name || '', status: 'available', pricePerHour: selectedConsoleData?.pricePerHour || 350 });
     await fetchConsoles();
     await fetchSessions();
     toast.success(`Console ${selectedConsoleData?.name || 'Console'} stopped!`);
-  } finally {
-    setLoading(false);
-    setShowStopConfirm(false);
-  }
-};
-
-const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
-  const sessionToStop = sessions.find(s => s.id === sessionId);
-  const consoleData = consoles.find(c => c.id === consoleId);
-  if (!sessionToStop || !consoleData) return;
-  setLoading(true);
-  try {
-    const now = new Date();
-    const duration = sessionToStop.totalMinutes;
-    const price = ((duration / 60) * (consoleData.pricePerHour || 350));
-    const transactionId = sessionTransactionIds[consoleId];
-    const endTime = now.toISOString().slice(0, 19).replace('T', ' ');
-    if (transactionId) {
-      // Update the existing transaction to "completed"
-      await updateTransaction(transactionId, {
-        amountPaid: price,
-        amountDue: 0,
-        totalAmount: price,
-        paymentMethod: 'cash',
-        status: 'completed',
-      });
-    }
-    await stopSession(sessionId, endTime, duration);
-    await updateConsole({ id: consoleId, name: consoleData.name || '', status: 'available', pricePerHour: consoleData.pricePerHour || 350 });
-    await fetchConsoles();
-    await fetchSessions();
-    toast.custom((t) => (
-      <div className="bg-green-700 text-white px-4 py-2 rounded shadow flex items-center justify-between gap-4">
-        <span>Console #{consoleData.name} is now free!</span>
-        <button onClick={() => toast.dismiss(t.id)} className="text-white hover:text-gray-300 text-sm font-bold">
-          ❌
-        </button>
-      </div>
-    ), { duration: Infinity });
   } finally {
     setLoading(false);
   }
@@ -404,6 +344,48 @@ const todayTotalRevenue = revenue.today + todayRevenue
     return () => clearInterval(interval);
   }, [sessions]);
 
+  // Helper to stop session by id (does not depend on selectedConsole)
+  const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
+    const sessionToStop = sessions.find(s => s.id === sessionId);
+    const consoleData = consoles.find(c => c.id === consoleId);
+    if (!sessionToStop || !consoleData) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      const duration = sessionToStop.totalMinutes;
+      const price = ((duration / 60) * (consoleData.pricePerHour || 350));
+      await addTransaction({
+        consoleId: consoleId,
+        consoleName: consoleData.name || '',
+        player_1: sessionToStop.player_1,
+        player_2: sessionToStop.player_2,
+        startTime: sessionToStop.startTime,
+        endTime: now.toISOString().slice(0, 19).replace('T', ' '),
+        duration,
+        amountPaid: price,
+        amountDue: 0,
+        totalAmount: price,
+        paymentMethod: 'cash',
+        status: 'completed',
+        createdAt: now.toISOString().slice(0, 19).replace('T', ' ')
+      });
+      await stopSession(sessionId, now.toISOString().slice(0, 19).replace('T', ' '), duration);
+      await updateConsole({ id: consoleId, name: consoleData.name || '', status: 'available', pricePerHour: consoleData.pricePerHour || 350 });
+      await fetchConsoles();
+      await fetchSessions();
+      toast.custom((t) => (
+        <div className="bg-green-700 text-white px-4 py-2 rounded shadow flex items-center justify-between gap-4">
+          <span>Console #{consoleData.name} is now free!</span>
+          <button onClick={() => toast.dismiss(t.id)} className="text-white hover:text-gray-300 text-sm font-bold">
+            ❌
+          </button>
+        </div>
+      ), { duration: Infinity });
+    } finally {
+      setLoading(false);
+    }
+  };
+
     // Confirm delete action
   const confirmDelete = async () => {
     setLoading(true);
@@ -441,10 +423,8 @@ const todayTotalRevenue = revenue.today + todayRevenue
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-solid"></div>
         </div>
       )}
-
       {/* Notification */}
       <Toaster position="top-right" />
-
       {/* Confirmation Modal */}
       {confirm.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -476,36 +456,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
         </div>
       )}
 
-      {/* Confirmation Stop Modal */}
-      {showStopConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-gray-900 rounded-xl shadow-lg p-8 border border-gray-700 w-full max-w-md flex flex-col items-center">
-            <AlertTriangle className="w-12 h-12 text-yellow-400 mb-4" />
-            <h2 className="text-xl font-bold text-gray-100 mb-2">Are you sure?</h2>
-            <p className="text-gray-300 mb-6">
-              You are about to stop this session. This action cannot be undone.
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={handleStopSession}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 font-semibold shadow"
-              >
-                <Square className="w-4 h-4" />
-                Stop Session
-              </button>
-              <button
-                onClick={() => setShowStopConfirm(false)}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 font-semibold"
-              >
-                <X className="w-4 h-4" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Nav Bar */}
     <nav className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700 z-40 relative">
       <div className="mx-auto px-4 sm:px-6 lg:px-6">
         <div className="flex items-center justify-between h-16">
@@ -514,7 +464,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
               <Gamepad2 className="w-8 h-8 text-blue-400" />
               <span className="text-xl font-bold text-white">{settings?.businessName || 'Baznaz Gaming'}</span>
             </div>
-            {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-4">
               <button
                 onClick={() => setActiveTab('consoles')}
@@ -523,7 +472,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
                 }`}
               >
                 <Monitor className="w-4 h-4" />
-                <span>{i18n.t('ps4_consoles')}</span>
+                <span>PS4 Consoles</span>
               </button>
               <button
                 onClick={() => setActiveTab('consumation')}
@@ -556,32 +505,34 @@ const todayTotalRevenue = revenue.today + todayRevenue
                 <span>Users</span>
               </button>
               )}
+              {user?.role === 'admin' && (
               <button
-                onClick={() => setActiveTab('leaderboard')}
+                onClick={() => setActiveTab('settings')}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                  activeTab === 'leaderboard' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  activeTab === 'settings' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700'
                 }`}
-                >
-                  <Award className='w-4 h-4' />
-                  <span>leaderboard</span>
-              </button> 
-                          <button
+              >
+                <SettingsIcon className="w-4 h-4" />
+                <span>Settings</span>
+              </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
               onClick={openClientDisplay}
               className="flex items-center space-x-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
               <Tv className="w-4 h-4" />
               <span>Client Display</span>
-            </button>             
-            </div>
-          </div>          
-          <div className="flex items-center space-x-4">
+            </button>
             <div className="flex items-center space-x-2 text-sm text-gray-300">
               <span>Today: {todayTotalRevenue.toFixed(2)} {settings?.currency || 'DA'}</span>
             </div>
             <div className="text-sm text-gray-300">
               {currentTime.toLocaleTimeString()}
             </div>
-            
+
             {/* Lowstock notification */}    
             <div className="relative">
               <button onClick={() => setNotifOpen(v => !v)} className="relative" aria-label="Notifications">
@@ -593,7 +544,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-gray-800 border border-gray-700 rounded-xl shadow-lg z-50 p-4">
+                <div className="absolute right-0 mt-2 w-72 bg-gray-800 border border-gray-700 rounded-xl shadow-lg z-50 p-4">
                   <h4 className="font-bold text-white mb-2 flex items-center gap-2">
                     <AlertTriangle className="text-yellow-400 w-5 h-5" /> Low Stock Items
                   </h4>
@@ -616,7 +567,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
                 </div>
               )}
             </div>
-
             {/* Profile dropdown */}
             <div className="relative z-10 overflow-visible"  ref={dropdownRef}>
               <button
@@ -626,10 +576,8 @@ const todayTotalRevenue = revenue.today + todayRevenue
               >
                 <User className="w-6 h-6 text-blue-300" />
               </button>
-
-              {/* Profile Dropdown */}
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-44 sm:w-48 bg-gray-800 rounded-md shadow-lg z-[9999] overflow-visible border border-gray-700">
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg z-[9999] overflow-visible border border-gray-700">
                 <div className="px-4 py-3 border-b border-gray-700">
                   <div className="font-semibold text-white">{user?.username}</div>
                   <div className="text-xs text-gray-400">{user?.email}</div>
@@ -644,16 +592,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
                   <User className="w-4 h-4 mr-2 text-gray-400" />
                   Profile
                 </button>
-                {user?.role === 'admin' && (
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className="flex w-full items-center px-4 py-2 text-gray-300 hover:bg-gray-700 text-sm"
-                  
-                >
-                  <SettingsIcon className="w-4 h-4 mr-2 text-gray-400" />
-                  <span>Settings</span>
-                </button>
-                )} 
                 <button
                   className="flex w-full items-center px-4 py-2 text-gray-300 hover:bg-gray-700 text-sm"
                   onClick={() => {
@@ -667,74 +605,8 @@ const todayTotalRevenue = revenue.today + todayRevenue
               </div>
               )}
             </div>
-            {/* Mobile menu button */}
-            <div className="md:hidden flex items-center">
-              <button
-                onClick={() => setMobileNavOpen(v => !v)}
-                className="text-gray-300 hover:text-white focus:outline-none"
-              >
-                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileNavOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
-
-            {/* Mobile Nav Dropdown */}
-            {mobileNavOpen && (
-              <div className="md:hidden mt-2 space-y-1 pb-3">
-                <button
-                  onClick={() => { setActiveTab('consoles'); setMobileNavOpen(false); }}
-                  className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'consoles' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                >
-                  <Monitor className="inline w-4 h-4 mr-2" /> PS4 Consoles
-                </button>
-                <button
-                  onClick={() => { setActiveTab('consumation'); setMobileNavOpen(false); }}
-                  className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'consumation' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                >
-                  <ShoppingCart className="inline w-4 h-4 mr-2" /> Consumation
-                </button>
-                {user?.role === 'admin' && (
-                  <button
-                    onClick={() => { setActiveTab('mlogs'); setMobileNavOpen(false); }}
-                    className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'mlogs' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                  >
-                    <BarChart3 className="inline w-4 h-4 mr-2" /> M.logs
-                  </button>
-                )}
-                {user?.role === 'admin' && (
-                  <button
-                    onClick={() => { setActiveTab('users'); setMobileNavOpen(false); }}
-                    className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'users' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                  >
-                    <User className="inline w-4 h-4 mr-2" /> Users
-                  </button>
-                )}
-                <button
-                  onClick={() => { setActiveTab('leaderboard'); setMobileNavOpen(false); }}
-                  className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'leaderboard' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                >
-                  <Award className="inline w-4 h-4 mr-2" /> Leaderboard
-                </button>
-                {user?.role === 'admin' && (
-                  <button
-                    onClick={() => { setActiveTab('settings'); setMobileNavOpen(false); }}
-                    className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'settings' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
-                  >
-                    <SettingsIcon className="inline w-4 h-4 mr-2" /> Settings
-                  </button>
-                )}
-              <button
-                onClick={openClientDisplay}
-                className="flex items-center space-x-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-              >
-                <Tv className="w-4 h-4" />
-                <span>Client Display</span>
-              </button>
-              </div>
-            )}
       </div>
     </nav>
   
@@ -742,7 +614,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
     {/* Player Info Form Modal */}
     {showCustomerForm && (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-gray-800 rounded-xl p-6 w-full max-w-xs sm:max-w-sm md:max-w-md border border-gray-700">
+        <div className="bg-gray-800 rounded-xl p-6 w-96 border border-gray-700">
           <h3 className="text-lg font-semibold text-white mb-4">Player Information</h3>
           <div className="space-y-4">
             {/* Player 1 */}
@@ -793,7 +665,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
     )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'consoles' && (
           <>
             {/* Status Overview */}
@@ -1067,7 +939,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
                           {selectedConsoleData?.status === 'rented' && (
                             <>
                               <button
-                                onClick={() => setShowStopConfirm(true)}
+                                onClick={handleStopSession}
                                 className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                               >
                                 <Square className="w-4 h-4" />
@@ -1132,7 +1004,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
         {activeTab === 'mlogs' && <MoneyLogsPage />}
         {activeTab === 'users' && <AdminUsersPage />}
         {activeTab === 'profile' && <ProfilePage />}
-        {activeTab === 'leaderboard' && <LeaderProfileModal/>}
       </div>
     </div>
   );

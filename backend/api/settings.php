@@ -13,15 +13,19 @@ switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
         $result = $mysqli->query("SELECT * FROM settings LIMIT 1");
         $settings = $result->fetch_assoc();
+        // Cast soundEffects to boolean for frontend
+        $settings['soundEffects'] = (int)$settings['soundEffects'] === 1;
         echo json_encode($settings);
         break;
 
     case 'POST':
     case 'PUT':
         $data = json_decode(file_get_contents('php://input'), true);
-        $stmt = $mysqli->prepare("UPDATE settings SET pricePerHour=?, currency=?, businessName=?, businessPhone=?, businessAddress=?, taxRate=?, autoStopOnTimeUp=?, allowExtensions=?, requireCustomerInfo=? WHERE id=1");
+        // Default fallback
+        $data['soundEffects'] = isset($data['soundEffects']) ? (int)$data['soundEffects'] : 0;
+        $stmt = $mysqli->prepare("UPDATE settings SET pricePerHour=?, currency=?, businessName=?, businessPhone=?, businessAddress=?, taxRate=?, autoStopOnTimeUp=?, allowExtensions=?, requireCustomerInfo=?, language=?, theme=?, soundEffects=?");
         $stmt->bind_param(
-            "issssdiis",
+            "issssdiisssi",
             $data['pricePerHour'],
             $data['currency'],
             $data['businessName'],
@@ -30,7 +34,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
             $data['taxRate'],
             $data['autoStopOnTimeUp'],
             $data['allowExtensions'],
-            $data['requireCustomerInfo']
+            $data['requireCustomerInfo'],
+            $data['language'],
+            $data['theme'],
+            $data['soundEffects']
         );
         $stmt->execute();
         echo json_encode(['success' => true]);

@@ -3,7 +3,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 export interface Session {
   id: number;
   consoleId: number;
-  customerName: string;
+  Player_1: string;
+  Player_2: string;
   startTime: string;
   endTime: string;
   totalMinutes: number;

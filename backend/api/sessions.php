@@ -15,8 +15,8 @@ switch ($_SERVER['REQUEST_METHOD']) {
         break;
     case 'POST':
         $data = json_decode(file_get_contents('php://input'), true);
-        $stmt = $mysqli->prepare("INSERT INTO sessions (consoleId, customerName, startTime, endTime, totalMinutes, running) VALUES (?, ?, ?, ?, ?, 1)");
-        $stmt->bind_param("isssi", $data['consoleId'], $data['customerName'], $data['startTime'], $data['endTime'], $data['totalMinutes']);
+        $stmt = $mysqli->prepare("INSERT INTO sessions (consoleId, Player_1, Player_2, startTime, endTime, totalMinutes, running) VALUES (?, ?, ?, ?, ?, ?, 1)");
+        $stmt->bind_param("issssi", $data['consoleId'], $data['Player_1'], $data['Player_2'], $data['startTime'], $data['endTime'], $data['totalMinutes']);
         $stmt->execute();
         echo json_encode(['id' => $mysqli->insert_id]);
         break;

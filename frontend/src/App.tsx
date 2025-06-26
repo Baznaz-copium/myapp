@@ -12,6 +12,8 @@ import ConsumationPage from './components/ConsumationPage';
 import ProfilePage from './components/ProfilePage'; 
 import { MoneyLogsProvider } from './context/MoneyLogsContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LeaderboardProvider } from "./context/LeaderboardContext";
+import LiveBoard from "./components/Leaderboard/LiveBoard";
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth();
@@ -24,7 +26,8 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
 function App() {
   return (
-    <AuthProvider>
+    <AuthProvider>    
+      <LeaderboardProvider>
       <SettingsProvider>
         <TransactionProvider>
           <ConsoleProvider>
@@ -66,6 +69,14 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+                      <Route 
+                      path="/liveboard" 
+                      element={
+                          <ProtectedRoute>
+                            <LiveBoard />
+                          </ProtectedRoute>
+                       }
+                      />
                     </Routes>
                   </UserProvider>
                 </MoneyLogsProvider>
@@ -73,7 +84,8 @@ function App() {
             </SessionProvider>
           </ConsoleProvider>
         </TransactionProvider>
-      </SettingsProvider>
+      </SettingsProvider>   
+       </LeaderboardProvider>
     </AuthProvider>
   );
 }

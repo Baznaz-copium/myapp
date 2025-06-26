@@ -4,7 +4,8 @@ export interface Transaction {
   id: number;
   consoleId: number;
   consoleName: string;
-  customerName?: string;
+  player_1?: string;
+  player_2?: string;
   startTime: string;
   endTime: string;
   duration: number;
@@ -20,6 +21,8 @@ interface TransactionContextType {
   transactions: Transaction[];
   fetchTransactions: () => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  updateTransaction: (id: number, updates: Partial<Transaction>) => Promise<void>;
+  deleteTransaction?: (id: number) => Promise<void>; // Optional for now
   // Add update/delete if needed
 }
 
@@ -50,12 +53,29 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     await fetchTransactions();
   };
 
+const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
+  await fetch(API_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...updates }),
+  });
+  await fetchTransactions();
+};
+
+  // Placeholder for deleteTransaction, can be implemented later
+  const deleteTransaction = async (id: number) => {
+    await fetch(`${API_URL}/${id}`, {
+      method: 'DELETE',
+    });
+    await fetchTransactions();
+  };
+
   useEffect(() => {
     fetchTransactions();
   }, []);
 
   return (
-    <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction }}>
+    <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction, updateTransaction , deleteTransaction }}>
       {children}
     </TransactionContext.Provider>
   );
