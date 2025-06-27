@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Calendar, Filter, Search, Eye, Download, BarChart3 } from 'lucide-react';
+import { useState } from 'react';
+import { DollarSign, TrendingUp, Calendar, Search, Download, BarChart3 } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useSettings } from '../context/SettingsContext';
-import ReportsPage from './ReportsPage'; // Add this import
+import ReportsPage from './ReportsPage'; 
 
 function CashManagement() {
   const { transactions } = useTransactions();
@@ -41,7 +41,7 @@ function CashManagement() {
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = !searchTerm ||
       transaction.consoleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (transaction.customerName && transaction.customerName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (transaction.player_1 && transaction.player_1.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
     const matchesPaymentMethod = paymentMethodFilter === 'all' || transaction.paymentMethod === paymentMethodFilter;
@@ -90,7 +90,7 @@ function CashManagement() {
       ...filteredTransactions.map(t => [
         new Date(t.createdAt).toLocaleDateString(),
         t.consoleName,
-        t.customerName || 'Anonymous',
+        t.player_1 || 'Anonymous',
         formatDuration(t.duration),
         `${t.amountPaid} ${settings?.currency ?? ''}`,
         t.paymentMethod,
@@ -280,7 +280,7 @@ function CashManagement() {
                     {transaction.consoleName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {transaction.customerName || 'Anonymous'}
+                    {transaction.player_1 || 'Anonymous'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                     {formatDuration(transaction.duration)}

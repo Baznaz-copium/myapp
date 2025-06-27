@@ -12,7 +12,7 @@ const { autoUpdater } = require("electron-updater");
 server.use(express.static(DIST));
 
 // For any other route, serve index.html (for React Router)
-server.get(['/client-display', '/LeaderBoard'], (req, res) => {
+server.get('/client-display', '/LeaderBoard', (req, res) => {
   res.sendFile(path.join(DIST, 'index.html'));
 });
 
