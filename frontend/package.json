@@ -1,9 +1,9 @@
 {
   "name": "ps4-rental-management",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.5.0",
   "description": "PlayStation Rental Management App",
-  "author": "Baznaz <baznazweb@gmail.com",
+  "author": "Baznaz <baznazweb@gmail.com>",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
@@ -17,8 +17,11 @@
   },
   "dependencies": {
     "axios": "^1.10.0",
+    "better-sqlite3": "^12.1.0",
     "date-fns": "^2.30.0",
+    "electron-updater": "^6.6.2",
     "express": "^5.1.0",
+    "framer-motion": "^12.19.1",
     "html2pdf.js": "^0.10.3",
     "idb": "^8.0.3",
     "lucide-react": "^0.344.0",
@@ -27,9 +30,12 @@
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.20.1",
+    "react-tsparticles": "^2.12.2",
     "recharts": "^2.15.3",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.177.0",
+    "tsparticles": "^3.8.1",
+    "tsparticles-engine": "^2.12.0",
     "vanta": "^0.5.24",
     "zod": "^3.25.67"
   },
@@ -54,7 +60,14 @@
   },
   "build": {
     "appId": "com.Baznaz-managment.myapp",
-    "productName": "MyApp",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Baznaz-copium",
+        "repo": "myapp"
+      }
+    ],
+    "productName": "Baznaz-managment",
     "files": [
       "dist/**/*",
       "main.cjs"
@@ -63,7 +76,7 @@
       "buildResources": "assets"
     },
     "win": {
-      "icon": "../dist/controller.ico",
+      "icon": "assets/controller.ico",
       "target": "nsis"
     }
   }

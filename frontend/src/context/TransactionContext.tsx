@@ -4,7 +4,8 @@ export interface Transaction {
   id: number;
   consoleId: number;
   consoleName: string;
-  customerName?: string;
+  player_1?: string;
+  player_2?: string;
   startTime: string;
   endTime: string;
   duration: number;

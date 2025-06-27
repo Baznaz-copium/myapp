@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Gamepad2, DollarSign, Mail, Award, Settings as SettingsIcon, Monitor, Play, Square, User , Clock, LogOut, BarChart3, Tv, Plus, AlertTriangle, Trash2, Edit3, Save, X, ShoppingCart } from 'lucide-react';
+import { Gamepad2, DollarSign, Mail, Settings as SettingsIcon, Monitor, Play, Square, User , Clock, LogOut, BarChart3, Tv, Plus, AlertTriangle, Trash2, Edit3, Save, X, ShoppingCart } from 'lucide-react';
 import { useConsoles } from '../context/ConsoleContext';
 import { useSettings } from '../context/SettingsContext';
 import { useTransactions } from '../context/TransactionContext';
@@ -13,7 +13,6 @@ import AdminUsersPage from './UserManagement/UserManagement';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useConsumation } from '../context/ConsumationContext';
-import LeaderProfileModal from './Leaderboard/LeaderBoard.tsx';
 
 function AdminDashboard() {
   const { consoles, addConsole, updateConsole, deleteConsole, fetchConsoles } = useConsoles();
@@ -24,7 +23,7 @@ function AdminDashboard() {
   const [confirm, setConfirm] = useState<{ ids: number[]; show: boolean }>({ ids: [], show: false });
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'consoles' | 'users' | 'mlogs' | 'settings' | 'cash' |  'consumation' |'leaderboard' | 'profile'>('consoles');
+  const [activeTab, setActiveTab] = useState<'consoles' | 'users' | 'mlogs' | 'settings' | 'cash' |  'consumation' | 'profile'>('consoles');
   const [selectedConsole, setSelectedConsole] = useState<number | null>(null);
   const [editingConsole, setEditingConsole] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
@@ -146,8 +145,8 @@ if (requireCustomerInfo && !player_1.trim() && !player_2.trim()) {
     }
     await startSession({
       consoleId: selectedConsole,
-      Player_1: player_1.trim(),
-      Player_2: player_2.trim(),
+      player_1: player_1.trim(),
+      player_2: player_2.trim(),
       startTime: startTime,
       endTime: endTime,
       totalMinutes: minutes,
@@ -196,8 +195,8 @@ const handleStopSession = async () => {
     await addTransaction({
       consoleId: selectedConsole,
       consoleName: selectedConsoleData?.name || '',
-      player_1: session.Player_1,
-      player_2: session.Player_2,
+      player_1: session.player_1,
+      player_2: session.player_2,
       startTime: session.startTime,
       endTime: endTime,
       duration, // Actual or planned duration in minutes
@@ -358,8 +357,8 @@ const todayTotalRevenue = revenue.today + todayRevenue
       await addTransaction({
         consoleId: consoleId,
         consoleName: consoleData.name || '',
-        player_1: sessionToStop.Player_1,
-        player_2: sessionToStop.Player_2,
+        player_1: sessionToStop.player_1,
+        player_2: sessionToStop.player_2,
         startTime: sessionToStop.startTime,
         endTime: now.toISOString().slice(0, 19).replace('T', ' '),
         duration,
@@ -506,15 +505,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
                 <span>Users</span>
               </button>
               )}
-              <button
-                onClick={() => setActiveTab('leaderboard')}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                  activeTab === 'leaderboard' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                }`}
-                >
-                  <Award className='w-4 h-4' />
-                  <span>leaderboard</span>
-              </button>              
               {user?.role === 'admin' && (
               <button
                 onClick={() => setActiveTab('settings')}
@@ -1014,7 +1004,6 @@ const todayTotalRevenue = revenue.today + todayRevenue
         {activeTab === 'mlogs' && <MoneyLogsPage />}
         {activeTab === 'users' && <AdminUsersPage />}
         {activeTab === 'profile' && <ProfilePage />}
-        {activeTab === 'leaderboard' && <LeaderProfileModal/>}
       </div>
     </div>
   );

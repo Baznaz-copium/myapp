@@ -171,9 +171,9 @@ function ConsumationPage() {
   }
 
 
-
   return (
     <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+
       {/* Revenue Stats */}
       {user?.role === 'admin' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

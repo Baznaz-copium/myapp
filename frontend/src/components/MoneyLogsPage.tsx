@@ -312,7 +312,7 @@ function MoneyLogsPage() {
             >
               Clear
             </button>
-                        <button
+            <button
               onClick={() => setShowReports(true)}
               className="flex items-center gap-1 bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded-lg"
             >

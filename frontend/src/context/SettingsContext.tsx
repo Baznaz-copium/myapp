@@ -10,6 +10,9 @@ export interface Settings {
   autoStopOnTimeUp: boolean;
   allowExtensions: boolean;
   requireCustomerInfo: boolean;
+  language: string;          
+  theme: string;             
+  soundEffects: boolean;     
 }
 
 interface SettingsContextType {
