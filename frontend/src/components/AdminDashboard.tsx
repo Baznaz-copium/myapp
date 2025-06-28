@@ -22,7 +22,6 @@ function AdminDashboard() {
   const { transactions, addTransaction, updateTransaction } = useTransactions();
   const { sessions, startSession, stopSession,extendSession, fetchSessions } = useSessions();
   const [confirm, setConfirm] = useState<{ ids: number[]; show: boolean }>({ ids: [], show: false });
-
   // UI state
   const [activeTab, setActiveTab] = useState<'consoles' | 'users' | 'mlogs' | 'settings' | 'cash' |  'consumation' |'leaderboard' | 'profile'>('consoles');
   const [selectedConsole, setSelectedConsole] = useState<number | null>(null);
@@ -38,6 +37,15 @@ function AdminDashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Stats
+  const selectedConsoleData = consoles.find(c => c.id === selectedConsole);
+  const availableCount = consoles.filter(c => c.status === 'available').length;
+  const rentedCount = consoles.filter(c => c.status === 'rented').length;
+  const maintenanceCount = consoles.filter(c => c.status === 'maintenance').length;
+  // Session helpers
+  const session = sessions.find(s => s.consoleId === selectedConsole && s.running);
+  const [sessionTransactionIds, setSessionTransactionIds] = useState<Record<number, number>>({});
+  const [showStopConfirm, setShowStopConfirm] = useState(false);        
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -81,15 +89,6 @@ function AdminDashboard() {
     }
   };
 
-  // Stats
-  const selectedConsoleData = consoles.find(c => c.id === selectedConsole);
-  const availableCount = consoles.filter(c => c.status === 'available').length;
-  const rentedCount = consoles.filter(c => c.status === 'rented').length;
-  const maintenanceCount = consoles.filter(c => c.status === 'maintenance').length;
-
-  // Session helpers
-  const session = sessions.find(s => s.consoleId === selectedConsole && s.running);
-
   // Console editing
   const handleEditConsole = (consoleId: number, name: string) => {
     setEditingConsole(consoleId);
@@ -108,151 +107,149 @@ function AdminDashboard() {
       setLoading(false);
     }
   };
-
   // Add console
-const handleAddConsole = async () => {
-  setLoading(true);
-  try {
-    await addConsole({
-      name: `#${consoles.length + 1}`,
-      status: 'available',
-      pricePerHour: settings?.pricePerHour || 350,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-const [sessionTransactionIds, setSessionTransactionIds] = useState<Record<number, number>>({});
-const [showStopConfirm, setShowStopConfirm] = useState(false);
-
-// Start session: Insert transaction with status "active"
-const handleStartSession = async (minutes: number) => {
-  const requireCustomerInfo = !!Number(settings?.requireCustomerInfo);
-  if (requireCustomerInfo && !player_1.trim() && !player_2.trim()) {
-    setPendingMinutes(minutes);
-    setShowCustomerForm(true);
-    return;
-  }
-  setLoading(true);
-  try {
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const startTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    const end = new Date(now.getTime() + minutes * 60000);
-    const endTime = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())} ${pad(end.getHours())}:${pad(end.getMinutes())}:${pad(end.getSeconds())}`;
-
-    if (selectedConsole === null) {
-      throw new Error("No console selected");
-    }
-
-    // Insert transaction with status "active"
-    const transactionId = await addTransaction({
-      consoleId: selectedConsole,
-      consoleName: selectedConsoleData?.name || '',
-      player_1: player_1.trim(),
-      player_2: player_2.trim(),
-      startTime,
-      endTime,
-      duration: minutes,
-      amountPaid: 0,
-      amountDue: 0,
-      totalAmount: 0,
-      paymentMethod: '',
-      status: 'Ongoing',
-      createdAt: startTime,
-    });
-
-    // Save transactionId for this console/session
-    setSessionTransactionIds(prev => ({
-      ...prev,
-      ...(selectedConsole !== null && typeof transactionId === 'number'
-        ? { [selectedConsole]: transactionId }
-        : {}),
-    }));
-
-    await startSession({
-      consoleId: selectedConsole,
-      Player_1: player_1.trim(),
-      Player_2: player_2.trim(),
-      startTime,
-      endTime,
-      totalMinutes: minutes,
-    });
-
-    await updateConsole({
-      id: selectedConsole,
-      name: selectedConsoleData?.name || '',
-      status: 'rented',
-      pricePerHour: selectedConsoleData?.pricePerHour || 350,
-    });
-
-    await fetchConsoles();
-    await fetchSessions();
-
-    setPlayer_1('');
-    setPlayer_2('');
-    setShowCustomerForm(false);
-    setPendingMinutes(null);
-  } finally {
-    setLoading(false);
-    toast.success(`Console ${selectedConsoleData?.name || 'Console'} rented for ${minutes} minutes!`);
-  }
-};
-
-const handleStopSession = async () => {
-  if (!selectedConsole || !session) return;
-  setLoading(true);
-  try {
-    const now = new Date();
-    const startTime = new Date(session.startTime);
-    const usedMs = now.getTime() - startTime.getTime();
-    const usedMinutes = Math.round(usedMs / 60000);
-    const duration = Math.min(session.totalMinutes, usedMinutes);
-    const price = ((duration / 60) * (selectedConsoleData?.pricePerHour || 350));
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const endTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-
-    // Get transactionId for this session
-    const transactionId = sessionTransactionIds[selectedConsole];
-
-    if (transactionId) {
-      // Update the existing transaction to "stopped"
-      await updateTransaction(transactionId, {
-        endTime,
-        duration,
-        amountPaid: price,
-        amountDue: 0,
-        totalAmount: price,
-        paymentMethod: 'cash',
-        status: 'cancelled',
+  const handleAddConsole = async () => {
+    setLoading(true);
+    try {
+      await addConsole({
+        name: `#${consoles.length + 1}`,
+        status: 'available',
+        pricePerHour: settings?.pricePerHour || 350,
       });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    await stopSession(session.id, endTime, duration);
-    await updateConsole({ id: selectedConsole, name: selectedConsoleData?.name || '', status: 'available', pricePerHour: selectedConsoleData?.pricePerHour || 350 });
-    await fetchConsoles();
-    await fetchSessions();
-    toast.success(`Console ${selectedConsoleData?.name || 'Console'} stopped!`);
-  } finally {
-    setLoading(false);
-    setShowStopConfirm(false);
-  }
-};
+  // Start session: Insert transaction with status "active"
+  const handleStartSession = async (minutes: number) => {
+    const requireCustomerInfo = !!Number(settings?.requireCustomerInfo);
+    if (requireCustomerInfo && !player_1.trim() && !player_2.trim()) {
+      setPendingMinutes(minutes);
+      setShowCustomerForm(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const startTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const end = new Date(now.getTime() + minutes * 60000);
+      const endTime = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())} ${pad(end.getHours())}:${pad(end.getMinutes())}:${pad(end.getSeconds())}`;
 
-const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
-  const sessionToStop = sessions.find(s => s.id === sessionId);
-  const consoleData = consoles.find(c => c.id === consoleId);
-  if (!sessionToStop || !consoleData) return;
-  setLoading(true);
-  try {
-    const now = new Date();
-    const duration = sessionToStop.totalMinutes;
-    const price = ((duration / 60) * (consoleData.pricePerHour || 350));
-    const transactionId = sessionTransactionIds[consoleId];
-    const endTime = now.toISOString().slice(0, 19).replace('T', ' ');
-    if (transactionId) {
-      // Update the existing transaction to "completed"
-    await updateTransaction(transactionId, {
+      if (selectedConsole === null) {
+        throw new Error("No console selected");
+      }
+
+      // Insert transaction with status "active"
+      const transactionId = await addTransaction({
+        consoleId: selectedConsole,
+        consoleName: selectedConsoleData?.name || '',
+        player_1: player_1.trim(),
+        player_2: player_2.trim(),
+        startTime,
+        endTime,
+        duration: minutes,
+        amountPaid: 0,
+        amountDue: 0,
+        totalAmount: 0,
+        paymentMethod: '',
+        status: 'ongoing',
+        createdAt: startTime,
+      });
+
+      // Save transactionId for this console/session
+      setSessionTransactionIds(prev => ({
+        ...prev,
+        ...(selectedConsole !== null && typeof transactionId === 'number'
+          ? { [selectedConsole]: transactionId }
+          : {}),
+      }));
+
+      await startSession({
+        consoleId: selectedConsole,
+        Player_1: player_1.trim(),
+        Player_2: player_2.trim(),
+        startTime,
+        endTime,
+        totalMinutes: minutes,
+      });
+
+      await updateConsole({
+        id: selectedConsole,
+        name: selectedConsoleData?.name || '',
+        status: 'rented',
+        pricePerHour: selectedConsoleData?.pricePerHour || 350,
+      });
+
+      await fetchConsoles();
+      await fetchSessions();
+
+      setPlayer_1('');
+      setPlayer_2('');
+      setShowCustomerForm(false);
+      setPendingMinutes(null);
+    } finally {
+      setLoading(false);
+      toast.success(`Console ${selectedConsoleData?.name || 'Console'} rented for ${minutes} minutes!`);
+    }
+  };
+    // Stop session buy clicking btn
+  const handleStopSession = async () => {
+    if (!selectedConsole || !session) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      const startTime = new Date(session.startTime);
+      const usedMs = now.getTime() - startTime.getTime();
+      const usedMinutes = Math.round(usedMs / 60000);
+      const duration = Math.min(session.totalMinutes, usedMinutes);
+      const price = ((duration / 60) * (selectedConsoleData?.pricePerHour || 350));
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const endTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      // Get transactionId for this session
+      const transactionId = sessionTransactionIds[selectedConsole];
+
+      if (transactionId) {
+        // Stop session (manual stop)
+        await updateTransaction(transactionId, {
+          endTime,
+          duration,
+          amountPaid: price,
+          amountDue: 0,
+          totalAmount: price,
+          paymentMethod: 'cash',
+          status: 'cancelled',
+        });
+      }
+
+      await stopSession(session.id, endTime, duration);
+      await updateConsole({ id: selectedConsole, name: selectedConsoleData?.name || '', status: 'available', pricePerHour: selectedConsoleData?.pricePerHour || 350 });
+      await fetchConsoles();
+      await fetchSessions();
+      toast.success(`Console ${selectedConsoleData?.name || 'Console'} stopped!`);
+    } finally {
+      setLoading(false);
+      setShowStopConfirm(false);
+    }
+  };
+    // End of session
+  const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
+    const sessionToStop = sessions.find(s => s.id === sessionId);
+    const consoleData = consoles.find(c => c.id === consoleId);
+    if (!sessionToStop || !consoleData) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      const duration = sessionToStop.totalMinutes;
+      const price = ((duration / 60) * (consoleData.pricePerHour || 350));
+      const transactionId = sessionTransactionIds[consoleId];
+      const endTime = now.toISOString().slice(0, 19).replace('T', ' ');
+      if (transactionId) {
+
+      // End session (auto or time up)
+      await updateTransaction(transactionId, {
       endTime,
       duration,
       amountPaid: price,
@@ -260,72 +257,92 @@ const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
       totalAmount: price,
       paymentMethod: 'cash',
       status: 'completed',
-    });
+      });
+      }
+      await stopSession(sessionId, endTime, duration);
+      await updateConsole({ id: consoleId, name: consoleData.name || '', status: 'available', pricePerHour: consoleData.pricePerHour || 350 });
+      await fetchConsoles();
+      await fetchSessions();
+      toast.custom((t) => (
+        <div className="bg-green-700 text-white px-4 py-2 rounded shadow flex items-center justify-between gap-4">
+          <span>Console {consoleData.name} is now free!</span>
+          <button onClick={() => toast.dismiss(t.id)} className="text-white hover:text-gray-300 text-sm font-bold">
+            ❌
+          </button>
+        </div>
+      ), { duration: Infinity });
+    } finally {
+      setLoading(false);
     }
-    await stopSession(sessionId, endTime, duration);
-    await updateConsole({ id: consoleId, name: consoleData.name || '', status: 'available', pricePerHour: consoleData.pricePerHour || 350 });
-    await fetchConsoles();
-    await fetchSessions();
-    toast.custom((t) => (
-      <div className="bg-green-700 text-white px-4 py-2 rounded shadow flex items-center justify-between gap-4">
-        <span>Console {consoleData.name} is now free!</span>
-        <button onClick={() => toast.dismiss(t.id)} className="text-white hover:text-gray-300 text-sm font-bold">
-          ❌
-        </button>
-      </div>
-    ), { duration: Infinity });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+    // Extend Time
+  const handleExtendSession = async (minutes: number) => {
+    if (!selectedConsole || !session) return;
+    setLoading(true);
+    try {
+      // Use the current session endTime as the base for extension
+      const currentEnd = new Date(session.endTime);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const newEnd = new Date(currentEnd.getTime() + Number(minutes) * 60000);
+      const newEndTime = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())} ${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}:${pad(newEnd.getSeconds())}`;
+      const newTotalMinutes = Number(session.totalMinutes) + Number(minutes);
 
-const handleExtendSession = async (minutes: number) => {
-  if (!selectedConsole || !session) return;
-  setLoading(true);
-  try {
-    // Use the current session endTime as the base for extension
-    const currentEnd = new Date(session.endTime);
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const newEnd = new Date(currentEnd.getTime() + Number(minutes) * 60000);
-    const newEndTime = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())} ${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}:${pad(newEnd.getSeconds())}`;
-    const newTotalMinutes = Number(session.totalMinutes) + Number(minutes);
+      // Get transactionId for this session
+      const transactionId = sessionTransactionIds[selectedConsole];
 
-    await extendSession(
-      session.id,
-      newEndTime,
-      newTotalMinutes
-    );
-    await fetchConsoles();
-    await fetchSessions();
-    toast.success(`Console ${selectedConsoleData?.name || 'Console'} extended by ${minutes} minutes!`);
-  } finally {
-    setLoading(false);
-  }
-};
+      await extendSession(
+        session.id,
+        newEndTime,
+        newTotalMinutes
+      );
+      // Extend/reduce session
+      if (transactionId) {
+        await updateTransaction(transactionId, {
+          endTime: newEndTime,
+          duration: newTotalMinutes
+        });
+      }
+      await fetchConsoles();
+      await fetchSessions();
+      toast.success(`Console ${selectedConsoleData?.name || 'Console'} extended by ${minutes} minutes!`);
+    } finally {
+      setLoading(false);
+    }
+  };
+    // Reduce Time
+  const handleReduceSession = async (minutes: number) => {
+    if (!selectedConsole || !session) return;
+    setLoading(true);
+    try {
+      // Use the current session endTime as the base for extension
+      const currentEnd = new Date(session.endTime);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const newEnd = new Date(currentEnd.getTime() - Number(minutes) * 60000);
+      const newEndTime = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())} ${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}:${pad(newEnd.getSeconds())}`;
+      const newTotalMinutes = Number(session.totalMinutes) - Number(minutes);
 
-const handleReduceSession = async (minutes: number) => {
-  if (!selectedConsole || !session) return;
-  setLoading(true);
-  try {
-    // Use the current session endTime as the base for extension
-    const currentEnd = new Date(session.endTime);
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const newEnd = new Date(currentEnd.getTime() - Number(minutes) * 60000);
-    const newEndTime = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())} ${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}:${pad(newEnd.getSeconds())}`;
-    const newTotalMinutes = Number(session.totalMinutes) - Number(minutes);
+      // Get transactionId for this session
+      const transactionId = sessionTransactionIds[selectedConsole];
 
-    await extendSession(
-      session.id,
-      newEndTime,
-      newTotalMinutes
-    );
-    await fetchConsoles();
-    await fetchSessions();
-    toast.success(`Console ${selectedConsoleData?.name || 'Console'} reversed by ${minutes} minutes!`);
-  } finally {
-    setLoading(false);
-  }
-};
+      await extendSession(
+        session.id,
+        newEndTime,
+        newTotalMinutes
+      );
+      // Only update endTime and duration in the transaction
+      if (transactionId) {
+        await updateTransaction(transactionId, {
+          endTime: newEndTime,
+          duration: newTotalMinutes
+        });
+      }
+      await fetchConsoles();
+      await fetchSessions();
+      toast.success(`Console ${selectedConsoleData?.name || 'Console'} reversed by ${minutes} minutes!`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Timer display helpers
   const getSessionInfo = (session: any) => {
@@ -356,21 +373,6 @@ const handleCustomerFormSubmit = async () => {
     setPendingMinutes(null);
   }
 };
-  const [alerted, setAlerted] = useState(false);
-  const sessionInfo = getSessionInfo(session);
-
-  useEffect(() => {
-    if (session && sessionInfo && sessionInfo.remainingStr === "00:00:00" && !alerted) {
-      setAlerted(true);
-      handleStopSession().then(() => {
-        const consoleData = consoles.find(c => c.id === session.consoleId);
-        toast.success(`Console ${consoleData?.name || 'Console'} is now free!`);
-      });
-    }
-    // Reset alert when session changes
-    if (!session && alerted) setAlerted(false);
-  }, [session, sessionInfo?.remainingStr]);
-
 
   // Open client display
   const openClientDisplay = () => {
@@ -1047,7 +1049,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
                         <div className="mb-6">
                           <p className="text-sm text-gray-400 mb-3">Quick Time Selection</p>
                           <div className="grid grid-cols-3 gap-2">
-                            {[30, 60, 90, 120, 150, 180].map((minutes) => (
+                            {[1, 60, 90, 120, 150, 180].map((minutes) => (
                               <button
                                 key={minutes}
                                 onClick={() =>

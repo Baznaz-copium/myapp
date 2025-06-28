@@ -38,6 +38,7 @@ const API_URL = 'http://myapp.test/backend/api/transactions.php';
 export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
+  // Fetch transaction
   const fetchTransactions = async () => {
     const res = await fetch(API_URL);
     const data = await res.json();
@@ -61,17 +62,17 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     await fetchTransactions();
     return result?.id;
   };
+  // Update transaction
+  const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
+    await fetch(API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    await fetchTransactions();
+  };
 
-const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
-  await fetch(API_URL, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, ...updates }),
-  });
-  await fetchTransactions();
-};
-
-  // Placeholder for deleteTransaction, can be implemented later
+  // Delete transaction
   const deleteTransaction = async (id: number) => {
     await fetch(`${API_URL}?id=${id}`, {
       method: 'DELETE',

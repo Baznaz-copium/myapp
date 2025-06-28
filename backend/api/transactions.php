@@ -84,6 +84,15 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 $data['id']
             );
         }
+            // 4. Only paymentMethod update
+            else if (isset($data['paymentMethod']) && isset($data['id'])) {
+                $stmt = $mysqli->prepare("UPDATE transactions SET paymentMethod=? WHERE id=?");
+                $stmt->bind_param(
+                    "si",
+                    $data['paymentMethod'],
+                    $data['id']
+                );
+            }
         // 3. Session End (Completed)
         else if (
             isset($data['status']) && 
@@ -102,7 +111,18 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 $data['id']
             );
         }
-        
+        // 4. Session Extension (only endTime and duration)
+        else if (
+            isset($data['endTime']) && isset($data['duration']) 
+        ) {
+            $stmt = $mysqli->prepare("UPDATE transactions SET endTime=?, duration=? WHERE id=?");
+            $stmt->bind_param(
+                "sdi",
+                $data['endTime'],
+                $data['duration'],
+                $data['id']
+            );
+        }       
         if (isset($stmt) && $stmt->execute()) {
             echo json_encode(['success' => true]);
         } else if (isset($stmt)) {

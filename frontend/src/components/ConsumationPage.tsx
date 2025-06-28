@@ -685,16 +685,6 @@ function ConsumationPage() {
               />
             </div>
             <div className="mb-6">
-              <label className="block mb-1 text-white">Price (DA)</label>
-              <input
-                type="number"
-                min={1}
-                value={editPrice}
-                onChange={(e) => setEditPrice(Number(e.target.value))}
-                className="bg-gray-800 border-gray-700 text-white w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
-              />
-            </div>
-            <div className="mb-6">
               <label className="block mb-1 text-white">Unit Price</label>
               <input
                 type="number"
@@ -704,7 +694,7 @@ function ConsumationPage() {
               />
             </div>
             <div className="mb-6">
-              <label className="block mb-1 text-white">Total Cost</label>
+              <label className="block mb-1 text-white">Total Cost : {editStock * editUnitPrice} DA</label>
               <input
                 type="number"
                 value={editTotalCost}
