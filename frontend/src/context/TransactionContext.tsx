@@ -20,10 +20,11 @@ export interface Transaction {
 interface TransactionContextType {
   transactions: Transaction[];
   fetchTransactions: () => Promise<void>;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<number | undefined>;
   updateTransaction: (id: number, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction?: (id: number) => Promise<void>; // Optional for now
-  // Add update/delete if needed
+  updateTransaction: (id: number, updates: Partial<Transaction>) => Promise<void>;
+  deleteTransaction: (id: number) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
@@ -41,11 +42,19 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const fetchTransactions = async () => {
     const res = await fetch(API_URL);
-    setTransactions(await res.json());
+    const data = await res.json();
+    setTransactions(
+      data.map((t: any) => ({
+        ...t,
+        player_1: t.player_1 ?? t.Player_1,
+        player_2: t.player_2 ?? t.Player_2,
+      }))
+    );
   };
 
+  // Insert transaction (returns new id)
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(transaction),
@@ -75,7 +84,7 @@ const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
   }, []);
 
   return (
-    <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction, updateTransaction , deleteTransaction }}>
+    <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction, updateTransaction , deleteTransaction, updateTransaction, deleteTransaction }}>
       {children}
     </TransactionContext.Provider>
   );
