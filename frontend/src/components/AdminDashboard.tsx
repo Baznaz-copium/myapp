@@ -252,13 +252,15 @@ const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
     const endTime = now.toISOString().slice(0, 19).replace('T', ' ');
     if (transactionId) {
       // Update the existing transaction to "completed"
-      await updateTransaction(transactionId, {
-        amountPaid: price,
-        amountDue: 0,
-        totalAmount: price,
-        paymentMethod: 'cash',
-        status: 'completed',
-      });
+    await updateTransaction(transactionId, {
+      endTime,
+      duration,
+      amountPaid: price,
+      amountDue: 0,
+      totalAmount: price,
+      paymentMethod: 'cash',
+      status: 'completed',
+    });
     }
     await stopSession(sessionId, endTime, duration);
     await updateConsole({ id: consoleId, name: consoleData.name || '', status: 'available', pricePerHour: consoleData.pricePerHour || 350 });
@@ -266,7 +268,7 @@ const handleStopSessionForId = async (sessionId: number, consoleId: number) => {
     await fetchSessions();
     toast.custom((t) => (
       <div className="bg-green-700 text-white px-4 py-2 rounded shadow flex items-center justify-between gap-4">
-        <span>Console #{consoleData.name} is now free!</span>
+        <span>Console {consoleData.name} is now free!</span>
         <button onClick={() => toast.dismiss(t.id)} className="text-white hover:text-gray-300 text-sm font-bold">
           ❌
         </button>
@@ -1074,42 +1076,54 @@ const todayTotalRevenue = revenue.today + todayRevenue
                                 <span>Stop Session</span>
                               </button>
                               {settings?.allowExtensions && (
-                                <div className="flex gap-4 flex-wrap">
-                                  {/* Reduce time -30min */}
+                              <div className="flex flex-wrap -mx-2">
+                                {/* Reduce time -30min */}
+                                <div className="w-1/2 px-2 mb-4">
                                   <button
                                     onClick={() => handleReduceSession(30)}
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                                     disabled={Number(session?.totalMinutes || 0) <= 30}
                                   >
                                     <Clock className="w-4 h-4" />
                                     <span>-30min</span>
                                   </button>
-                                  {/* Reduce time -60min */}
+                                </div>
+
+                                {/* Reduce time -60min */}
+                                <div className="w-1/2 px-2 mb-4">
                                   <button
                                     onClick={() => handleReduceSession(60)}
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                                     disabled={Number(session?.totalMinutes || 0) <= 60}
                                   >
                                     <Clock className="w-4 h-4" />
                                     <span>-60min</span>
                                   </button>
-                                  {/* Extend time +30min */}
+                                </div>
+
+                                {/* Extend time +30min */}
+                                <div className="w-1/2 px-2 mb-4">
                                   <button
                                     onClick={() => handleExtendSession(30)}
-                                    className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                                   >
                                     <Clock className="w-4 h-4" />
                                     <span>+30min</span>
                                   </button>
-                                  {/* Extend time +60min */}
+                                </div>
+
+                                {/* Extend time +60min */}
+                                <div className="w-1/2 px-2 mb-4">
                                   <button
                                     onClick={() => handleExtendSession(60)}
-                                    className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                                   >
                                     <Clock className="w-4 h-4" />
                                     <span>+60min</span>
                                   </button>
                                 </div>
+                              </div>
+
                               )}
                             </>
                           )}

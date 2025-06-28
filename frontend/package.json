@@ -1,7 +1,7 @@
 {
   "name": "ps4-rental-management",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "PlayStation Rental Management App",
   "author": "Baznaz <baznazweb@gmail.com>",
   "type": "module",

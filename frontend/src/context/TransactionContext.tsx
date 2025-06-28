@@ -23,8 +23,6 @@ interface TransactionContextType {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<number | undefined>;
   updateTransaction: (id: number, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction?: (id: number) => Promise<void>; // Optional for now
-  updateTransaction: (id: number, updates: Partial<Transaction>) => Promise<void>;
-  deleteTransaction: (id: number) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
@@ -53,13 +51,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   // Insert transaction (returns new id)
-  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<number | undefined> => {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(transaction),
     });
+    const result = await res.json();
     await fetchTransactions();
+    return result?.id;
   };
 
 const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
@@ -73,7 +73,7 @@ const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
 
   // Placeholder for deleteTransaction, can be implemented later
   const deleteTransaction = async (id: number) => {
-    await fetch(`${API_URL}/${id}`, {
+    await fetch(`${API_URL}?id=${id}`, {
       method: 'DELETE',
     });
     await fetchTransactions();
@@ -84,7 +84,7 @@ const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
   }, []);
 
   return (
-    <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction, updateTransaction , deleteTransaction, updateTransaction, deleteTransaction }}>
+    <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction, updateTransaction , deleteTransaction  }}>
       {children}
     </TransactionContext.Provider>
   );
