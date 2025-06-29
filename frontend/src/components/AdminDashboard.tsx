@@ -214,12 +214,9 @@ function AdminDashboard() {
       if (transactionId) {
         // Stop session (manual stop)
         await updateTransaction(transactionId, {
-          endTime,
-          duration,
           amountPaid: price,
           amountDue: 0,
           totalAmount: price,
-          paymentMethod: 'cash',
           status: 'cancelled',
         });
       }
@@ -250,12 +247,9 @@ function AdminDashboard() {
 
       // End session (auto or time up)
       await updateTransaction(transactionId, {
-      endTime,
-      duration,
       amountPaid: price,
       amountDue: 0,
       totalAmount: price,
-      paymentMethod: 'cash',
       status: 'completed',
       });
       }

@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { DollarSign, TrendingUp, Calendar, Search, Download, BarChart3, Save, X, Pencil, Trash2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { DollarSign, TrendingUp, Calendar, Download, BarChart3, Save, X, Pencil, Trash2 } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useSettings } from '../context/SettingsContext';
 import ReportsPage from './ReportsPage';
+import {handleExportPDF} from '../hooks/ExportPDF';
 
 function CashManagement() {
   const { transactions, updateTransaction, deleteTransaction } = useTransactions();
@@ -17,6 +18,8 @@ function CashManagement() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   // Helper for local date string
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -132,7 +135,7 @@ function CashManagement() {
   return (
     <div className="space-y-8 max-w-full mx-auto px-2 py-6">
       {/* Revenue Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" ref={exportRef}>
         <SummaryCard
           label="Today's Revenue"
           value={todayRevenue}
@@ -156,90 +159,164 @@ function CashManagement() {
         />
       </div>
 
-      {/* Filters and Controls */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-wrap gap-4 items-end">
-            <FilterInput
-              label="Search"
-              icon={<Search className="w-4 h-4 text-gray-400" />}
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Search transactions..."
-            />
-            <FilterSelect
-              label="Period"
-              value={selectedPeriod}
-              onChange={setSelectedPeriod}
-              options={[
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: 'This Week' },
-                { value: 'month', label: 'This Month' },
-                { value: 'all', label: 'All Time' }
-              ]}
-            />
-            <DateRangeFilter
-              start={customStartDate}
-              end={customEndDate}
-              setStart={setCustomStartDate}
-              setEnd={setCustomEndDate}
-              setSelectedPeriod={setSelectedPeriod}
-            />
-            <FilterSelect
-              label="Status"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: 'all', label: 'All Status' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'ongoing', label: 'Ongoing' },
-                { value: 'cancelled', label: 'Cancelled' }
-              ]}
-            />
-            <FilterSelect
-              label="Payment"
-              value={paymentMethodFilter}
-              onChange={setPaymentMethodFilter}
-              options={[
-                { value: 'all', label: 'All Payment Methods' },
-                { value: 'cash', label: 'Cash' },
-                { value: 'card', label: 'Card' }
-              ]}
-            />
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end mt-4 lg:mt-0">
-            <button
-              onClick={() => setShowReports((prev) => !prev)}
-              className="flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span>Reports</span>
-            </button>
-            <button
-              onClick={exportTransactions}
-              className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export CSV</span>
-            </button>
-          </div>
-        </div>
-        {showReports && (
-          <div className="mt-6">
-            <ReportsPage />
-          </div>
-        )}
-      </div>
+<div className="flex flex-wrap gap-3 bg-gray-900/60 p-4 rounded-xl border border-gray-700 mb-8">
+  {/* Period Button Group */}
+  <div className="flex flex-col lg:flex-row lg:justify-between w-full space-y-4 lg:space-y-0">
+    <div className="flex gap-1">
+      {[
+        { value: 'today', label: 'Today' },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' },
+        { value: 'all', label: 'All Time' }
+      ].map(btn => (
+        <button
+          key={btn.value}
+          className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+            selectedPeriod === btn.value
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+          }`}
+          onClick={() => setSelectedPeriod(btn.value)}
+        >
+          {btn.label}
+        </button>
+      ))}
+    </div>
+  </div>
 
+  {/* Filters and Actions */}
+  <div className="flex flex-wrap gap-2 w-full">
+    {/* Search */}
+    <input
+      type="text"
+      placeholder="Search transactions"
+      className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600"
+      value={searchTerm}
+      onChange={e => setSearchTerm(e.target.value)}
+    />
+
+    {/* Type Filter (example, adjust options as needed) */}
+    <select
+      className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600"
+      value={statusFilter}
+      onChange={e => setStatusFilter(e.target.value)}
+    >
+      <option value="all">All Status</option>
+      <option value="completed">Completed</option>
+      <option value="ongoing">Ongoing</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+
+    {/* Source Filter (example, adjust options as needed) */}
+    <select
+      className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600"
+      value={paymentMethodFilter}
+      onChange={e => setPaymentMethodFilter(e.target.value)}
+    >
+      <option value="all">Payment</option>
+      <option value="cash">Cash</option>
+      <option value="card">Card</option>
+    </select>
+
+    {/* Date Range */}
+    <input
+      type="date"
+      className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600"
+      value={customStartDate}
+      onChange={e => {
+        setCustomStartDate(e.target.value);
+        setSelectedPeriod('range');
+      }}
+    />
+    <input
+      type="date"
+      className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600"
+      value={customEndDate}
+      onChange={e => {
+        setCustomEndDate(e.target.value);
+        setSelectedPeriod('range');
+      }}
+    />
+
+    {/* Clear Button */}
+    <button
+      className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+      onClick={() => {
+        setSearchTerm('');
+        setStatusFilter('all');
+        setPaymentMethodFilter('all');
+        setCustomStartDate('');
+        setCustomEndDate('');
+        setSelectedPeriod('all');
+      }}
+    >
+      Clear
+    </button>
+
+    {/* Reports Button */}
+    <button
+      className="flex items-center gap-1 bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded-lg"
+      onClick={() => setShowReports((prev) => !prev)}
+    >
+      <BarChart3 className="w-4 h-4" />
+      Reports
+    </button>
+    {/* Export Button */}
+<div className="relative">
+  <button
+    className="flex items-center gap-1 bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-lg"
+    onClick={() => setShowExportMenu((v) => !v)}
+    type="button"
+  >
+    <Download className="w-4 h-4" />
+    Export
+  </button>
+  {showExportMenu && (
+    <div className="absolute right-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50">
+      <button
+        className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+        onClick={() => {
+          setShowExportMenu(false);
+          exportTransactions(); // CSV export 
+        }}
+      >
+        Export CSV
+      </button>
+      <button
+        className="w-full text-left px-4 py-2 hover:bg-gray-700 text-white"
+            onClick={() => {
+              setShowExportMenu(false);
+              if (exportRef.current) {
+                handleExportPDF(
+                  exportRef.current,
+                  `transactions_${new Date().toISOString().slice(0, 10)}.pdf`
+                );
+        }
+      }}
+      >
+        Export PDF
+      </button>
+    </div>
+  )}
+</div>
+  </div>
+</div>
+
+      {/* Conditional Report Section */}
+      {showReports && (
+        <div className="mt-6">
+          <ReportsPage />
+        </div>
+      )}
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" ref={exportRef}>
         <SummaryStat label="Total Revenue" value={totalRevenue} color="yellow" currency={settings?.currency} />
         <SummaryStat label="Total Transactions" value={totalTransactions} color="blue" />
         <SummaryStat label="Average Transaction" value={averageTransaction} color="green" currency={settings?.currency} />
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden" ref={exportRef}>
         <div className="p-6 border-b border-gray-700">
           <h3 className="text-xl font-semibold text-white flex items-center">
             <DollarSign className="w-5 h-5 mr-2 text-green-400" />
@@ -385,83 +462,6 @@ function SummaryStat({ label, value, color, currency }: SummaryStatProps) {
   );
 }
 
-function FilterInput({ label, icon, value, onChange, placeholder }: any) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">{label}</label>
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 transform -translate-y-1/2">{icon}</span>
-        <input
-          type="text"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="pl-10 pr-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none w-44"
-        />
-      </div>
-    </div>
-  );
-}
-
-function FilterSelect({ label, value, onChange, options }: any) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none w-36"
-      >
-        {options.map((opt: any) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function DateRangeFilter({ start, end, setStart, setEnd, setSelectedPeriod }: any) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Date Range</label>
-      <div className="flex gap-2">
-        <input
-          type="date"
-          value={start}
-          onChange={e => {
-            setStart(e.target.value);
-            setSelectedPeriod('range');
-          }}
-          className="bg-gray-700 text-white rounded-lg border border-gray-600 px-2 py-1 w-32"
-        />
-        <span className="text-gray-400">to</span>
-        <input
-          type="date"
-          value={end}
-          onChange={e => {
-            setEnd(e.target.value);
-            setSelectedPeriod('range');
-          }}
-          className="bg-gray-700 text-white rounded-lg border border-gray-600 px-2 py-1 w-32"
-        />
-        {(start || end) && (
-          <button
-            className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded"
-            onClick={() => {
-              setStart('');
-              setEnd('');
-              setSelectedPeriod('today');
-            }}
-            title="Clear date range"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function TableHeader({ label }: any) {
   return (
     <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-400 uppercase tracking-wider">{label}</th>
@@ -471,7 +471,7 @@ function TableHeader({ label }: any) {
 function EditRow({ editValues, setEditValues, onSave, onCancel }: any) {
   return (
     <>
-      <td className="px-4 sm:px-6 py-4">
+      <td className="px-4 sm:px-6 py-4" >
         <input
           type="datetime-local"
           value={

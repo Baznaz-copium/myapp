@@ -55,15 +55,12 @@ switch ($_SERVER['REQUEST_METHOD']) {
             strtolower($data['status']) === 'cancelled' &&
             isset($data['endTime']) && isset($data['duration'])
         ) {
-            $stmt = $mysqli->prepare("UPDATE transactions SET endTime=?, duration=?, amountPaid=?, amountDue=?, totalAmount=?, paymentMethod=?, status=? WHERE id=?");
+            $stmt = $mysqli->prepare("UPDATE transactions SET  amountPaid=?, amountDue=?, totalAmount=?, status=? WHERE id=?");
             $stmt->bind_param(
-                "sdddsssi",
-                $data['endTime'],
-                $data['duration'],
+                "ddssi",
                 $data['amountPaid'],
                 $data['amountDue'],
                 $data['totalAmount'],
-                $data['paymentMethod'],
                 $data['status'],
                 $data['id']
             );
@@ -98,15 +95,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
             isset($data['status']) && 
             strtolower($data['status']) === 'completed'
         ) {
-            $stmt = $mysqli->prepare("UPDATE transactions SET endTime=?, duration=?, amountPaid=?, amountDue=?, totalAmount=?, paymentMethod=?, status=? WHERE id=?");
+            $stmt = $mysqli->prepare("UPDATE transactions SET amountPaid=?, amountDue=?, totalAmount=?, paymentMethod=?, status=? WHERE id=?");
+            $paymentMethod = "cash";
             $stmt->bind_param(
-                "sdddsssi",
-                $data['endTime'],
-                $data['duration'],
+                "ddsssi",
                 $data['amountPaid'],
                 $data['amountDue'],
                 $data['totalAmount'],
-                $data['paymentMethod'],
+                $paymentMethod,
                 $data['status'],
                 $data['id']
             );

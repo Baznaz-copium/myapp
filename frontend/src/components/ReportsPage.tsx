@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Calendar, Users, Clock, DollarSign } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { BarChart3, TrendingUp, Users, Clock, DollarSign } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useConsoles } from '../context/ConsoleContext';
 import { useSettings } from '../context/SettingsContext';
@@ -10,6 +10,7 @@ function ReportsPage() {
   const { consoles } = useConsoles();
   const { settings } = useSettings();
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const getFilteredTransactions = () => {
     const now = new Date();
@@ -124,67 +125,68 @@ function ReportsPage() {
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full mx-auto py-1" ref={exportRef}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center">
-          <BarChart3 className="w-6 h-6 mr-2 text-purple-400" />
-          Reports & Analytics
-        </h2>
-        <select
-          value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-        >
-          <option value="week">Last 7 Days</option>
-          <option value="month">Last 30 Days</option>
-          <option value="quarter">Last 3 Months</option>
-          <option value="year">Last Year</option>
-        </select>
-      </div>
+      <div className=' bg-gray-900/60 p-4 rounded-xl border border-gray-700 mb-8'>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center">
+            <BarChart3 className="w-6 h-6 mr-2 text-purple-400" />
+            Reports & Analytics
+          </h2>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+          >
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="quarter">Last 3 Months</option>
+            <option value="year">Last Year</option>
+          </select>
+        </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-400">{totalRevenue.toFixed(0)} {settings?.currency}</p>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Total Revenue</p>
+                <p className="text-2xl font-bold text-green-400">{totalRevenue.toFixed(0)} {settings?.currency}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-400" />
             </div>
-            <DollarSign className="w-8 h-8 text-green-400" />
+          </div>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Total Sessions</p>
+                <p className="text-2xl font-bold text-blue-400">{totalSessions}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Avg Session</p>
+                <p className="text-2xl font-bold text-purple-400">
+                  {isNaN(averageSessionDuration) || !isFinite(averageSessionDuration) ? 0 : Math.round(averageSessionDuration)} min
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-purple-400" />
+            </div>
+          </div>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400">Avg Revenue</p>
+                <p className="text-2xl font-bold text-yellow-400">{averageRevenue.toFixed(0)} {settings?.currency}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-yellow-400" />
+            </div>
           </div>
         </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Total Sessions</p>
-              <p className="text-2xl font-bold text-blue-400">{totalSessions}</p>
-            </div>
-            <Users className="w-8 h-8 text-blue-400" />
-          </div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Avg Session</p>
-              <p className="text-2xl font-bold text-purple-400">
-                {isNaN(averageSessionDuration) || !isFinite(averageSessionDuration) ? 0 : Math.round(averageSessionDuration)} min
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-purple-400" />
-          </div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Avg Revenue</p>
-              <p className="text-2xl font-bold text-yellow-400">{averageRevenue.toFixed(0)} {settings?.currency}</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-yellow-400" />
-          </div>
-        </div>
-      </div>
-
+    </div>    
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily Revenue Chart */}
