@@ -13,6 +13,8 @@
     "build:electron": "electron-builder",
     "lint": "eslint .",
     "preview": "vite preview",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
     "electron": "electron ."
   },
   "dependencies": {
@@ -73,7 +75,7 @@
         "repo": "myapp"
       }
     ],
-    "productName": "Baznaz-managment",
+    "productName": "controller",
     "files": [
       "dist/**/*",
       "main.cjs"
@@ -84,6 +86,18 @@
     "win": {
       "icon": "assets/controller.ico",
       "target": "nsis"
-    }
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "license": "build/license.txt",
+      "installerIcon": "assets/install.ico",
+      "uninstallerIcon": "assets/uninstall.ico",
+      "uninstallDisplayName": "Don't uninstall Pleaseeeeeeeeeeeeee"
+    },
+    "include": "assets/installer.nsh"
   }
 }

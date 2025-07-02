@@ -12,7 +12,7 @@ const { autoUpdater } = require("electron-updater");
 server.use(express.static(DIST));
 
 // For any other route, serve index.html (for React Router)
-server.get('/client-display', '/LeaderBoard', (req, res) => {
+server.get(['/client-display', '/liveboard'], (req, res) => {
   res.sendFile(path.join(DIST, 'index.html'));
 });
 
@@ -29,6 +29,11 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
   mainWindow.maximize();
   mainWindow.loadURL('http://localhost:3000/');
+  mainWindow.on('close', (e) => {
+    console.log('Window close event triggered');
+    e.preventDefault();
+    mainWindow.webContents.send('show-exit-modal');
+  });
 }
 
 ipcMain.handle("check-for-update", async () => {
@@ -71,14 +76,14 @@ ipcMain.handle("restart-to-update", () => {
   autoUpdater.quitAndInstall();
 });
 
+ipcMain.on("force-close", () => {
+    mainWindow.removeAllListeners('close');
+    mainWindow.close();
+  });
+
 // Use Electron's app, not Express's app!
 app.whenReady().then(() => {
   serverInstance = server.listen(3000, createWindow);
-});
-
-app.on("ready", () => {
-  createWindow();
-
   autoUpdater.checkForUpdatesAndNotify();
 });
 
