@@ -60,19 +60,19 @@ function App() {
   const [showExitModal, setShowExitModal] = useState(false);
 
 useEffect(() => {
-  const handler = () => {
-    console.log('show-exit-modal received in renderer');
-    setShowExitModal(true);
-  };
+  if (!window.electron) return; // Prevent error in browser
+  const handler = () => setShowExitModal(true);
   window.electron.on("show-exit-modal", handler);
   return () => {
     window.electron.removeListener("show-exit-modal", handler);
   };
 }, []);
 
-  const handleExit = () => {
+const handleExit = () => {
+  if (window.electron) {
     window.electron.send("force-close");
-  };
+  }
+};
 
   return (
     <AuthProvider>  

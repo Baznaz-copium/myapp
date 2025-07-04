@@ -78,13 +78,14 @@
     "productName": "controller",
     "files": [
       "dist/**/*",
-      "main.cjs"
+      "main.cjs",
+      "preload.js"
     ],
     "directories": {
       "buildResources": "assets"
     },
     "win": {
-      "icon": "assets/controller.ico",
+      "icon": "assets/1.ico",
       "target": "nsis"
     },
     "nsis": {
@@ -93,11 +94,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "license": "build/license.txt",
+      "license": "assets/license.txt",
       "installerIcon": "assets/install.ico",
       "uninstallerIcon": "assets/uninstall.ico",
       "uninstallDisplayName": "Don't uninstall Pleaseeeeeeeeeeeeee"
-    },
-    "include": "assets/installer.nsh"
+    }
   }
 }
