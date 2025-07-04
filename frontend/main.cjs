@@ -24,7 +24,10 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    webPreferences: { contextIsolation: true, preload: path.join(__dirname, 'preload.js') }
+    webPreferences: {
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
+    }
   });
   mainWindow.setMenuBarVisibility(false);
   mainWindow.maximize();

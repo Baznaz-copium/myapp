@@ -1,6 +1,6 @@
 PS4 Rental Management Software License
 
-Copyright (c) 2024 Baznaz
+Copyright (c) 2025 Baznaz
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

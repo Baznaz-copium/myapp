@@ -6,3 +6,4 @@ contextBridge.exposeInMainWorld('electron', {
   removeListener: (...args) => ipcRenderer.removeListener(...args),
   invoke: (...args) => ipcRenderer.invoke(...args),
 });
+console.log('preload.js loaded');
