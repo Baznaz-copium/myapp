@@ -8,16 +8,6 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../types/i18n';
 
-// Extend the Window interface to include the electron property
-declare global {
-  interface Window {
-    electron: {
-      invoke: (channel: string, ...args: any[]) => Promise<any>;
-      on?: (channel: string, listener: (...args: any[]) => void) => void;
-      removeListener?: (channel: string, listener: (...args: any[]) => void) => void;
-    };
-  }
-}
 
 const languageList = [
   { code: "en", name: "English" },

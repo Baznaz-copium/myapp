@@ -72,7 +72,8 @@
       {
         "provider": "github",
         "owner": "Baznaz-copium",
-        "repo": "myapp"
+        "repo": "myapp",
+        "private": true
       }
     ],
     "productName": "controller",
