@@ -15,7 +15,8 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const API_URL = 'http://myapp.test/backend/api/users.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/users`;
 
 // Transform PHP API user to frontend User type
 const transformApiUser = (apiUser: any): User => ({
@@ -99,7 +100,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (payload.role) apiPayload.role = payload.role;
       if (payload.active !== undefined) apiPayload.active = payload.active;
 
-      const response = await axios.put(`${API_URL}?id=${id}`, apiPayload);
+      const response = await axios.put(`${API_URL}/${id}`, apiPayload);
       
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to update user');
@@ -123,7 +124,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
     
     try {
-      const response = await axios.delete(`${API_URL}?id=${id}`);
+      const response = await axios.delete(`${API_URL}/${id}`);
       
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to delete user');
@@ -149,7 +150,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Delete users one by one since PHP API doesn't support bulk delete
       for (const id of ids) {
-        const response = await axios.delete(`${API_URL}?id=${id}`);
+        const response = await axios.delete(`${API_URL}/${id}`);
         if (!response.data.success) {
           throw new Error(response.data.error || `Failed to delete user ${id}`);
         }

@@ -33,8 +33,8 @@ export function useLeaderboard() {
   if (!ctx) throw new Error("useLeaderboard must be used within the provider");
   return ctx;
 }
-
-const API_URL = 'http://myapp.test/backend/api/leaderboard.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/leaderboard`;
 
 function calcRanks(leaders: Leader[]): Leader[] {
   return [...leaders]
@@ -87,7 +87,7 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
   }
 
   async function updateLeader(id: number, data: Partial<Leader>) {
-    await fetch(`${API_URL}?id=${id}`, {
+    await fetch(`${API_URL}/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -96,7 +96,7 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
   }
 
   async function removeLeader(id: number) {
-    await fetch(`${API_URL}?id=${id}`, {
+    await fetch(`${API_URL}/${id}`, {
       method: "DELETE",
     });
     await refresh();

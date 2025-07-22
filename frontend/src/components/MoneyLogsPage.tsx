@@ -419,7 +419,7 @@ function MoneyLogsPage() {
                       <td className="px-4 py-2">
                         <input
                           type="date"
-                          value={log.date}
+                          value={log.date && log.date.includes('T') ? log.date.split('T')[0] : log.date}
                           disabled
                           className="bg-gray-700 text-white rounded-lg px-2 py-1 border border-gray-600"
                         />
@@ -491,7 +491,7 @@ function MoneyLogsPage() {
                       className={`border-b border-gray-700 hover:bg-blue-900/30 cursor-pointer transition-colors duration-100 ${isSelected ? 'bg-blue-700/40' : ''}`}
                       onClick={() => toggleSelect(log.id)}
                     >
-                      <td className="px-4 py-2">{log.date}</td>
+                      <td className="px-4 py-2">{log.date && log.date.split('T')[0]}</td>
                       <td className={`px-4 py-2 font-bold ${log.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>{log.type}</td>
                       <td className="px-4 py-2 capitalize">{log.source}</td>
                       <td className="px-4 py-2">{log.amount} DA</td>

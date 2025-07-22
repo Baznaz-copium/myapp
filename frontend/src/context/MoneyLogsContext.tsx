@@ -21,7 +21,8 @@ type MoneyLogsContextType = {
 };
 
 const MoneyLogsContext = createContext<MoneyLogsContextType | undefined>(undefined);
-const API_URL = 'http://myapp.test/backend/api/money_logs.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/money_logs`;
 
 export const useMoneyLogs = () => {
   const ctx = useContext(MoneyLogsContext);
@@ -39,24 +40,39 @@ export const MoneyLogsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addLog = async (log: Omit<MoneyLog, 'id'>) => {
+    // Format date as yyyy-MM-dd if present
+    let formattedLog = { ...log };
+    if (log.date && log.date.includes('T')) {
+      formattedLog.date = log.date.split('T')[0];
+    }
     const res = await fetch(`${API_URL}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(log),
+      body: JSON.stringify(formattedLog),
     });
     if (res.ok) await fetchLogs();
   };
 
   const removeLog = async (id: number) => {
-    const res = await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
+    // Backend expects DELETE with body, not /:id
+    const res = await fetch(`${API_URL}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
     if (res.ok) await fetchLogs();
   };
 
   const updateLog = async (id: number, log: Partial<MoneyLog>) => {
-    const res = await fetch(`${API_URL}?id=${id}`, {
+    // Format date as yyyy-MM-dd if present
+    let formattedLog = { ...log, id };
+    if (log.date && log.date.includes('T')) {
+      formattedLog.date = log.date.split('T')[0];
+    }
+    const res = await fetch(`${API_URL}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(log),
+      body: JSON.stringify(formattedLog),
     });
     if (res.ok) await fetchLogs();
   };

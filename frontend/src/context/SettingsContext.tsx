@@ -29,7 +29,8 @@ export const useSettings = () => {
   return ctx;
 };
 
-const API_URL = 'http://myapp.test/backend/api/settings.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/settings`;
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<Settings | null>(null);

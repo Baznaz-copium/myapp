@@ -23,8 +23,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
   const login = async (username: string, password: string) => {
-    const res = await axios.post('http://myapp.test/backend/api/auth.php?action=login', {
+    const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
       username,
       password
     });

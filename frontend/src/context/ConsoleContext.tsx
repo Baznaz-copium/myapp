@@ -23,7 +23,8 @@ export const useConsoles = () => {
   return ctx;
 };
 
-const API_URL = 'http://myapp.test/backend/api/consoles.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_URL = `${API_BASE_URL}/api/consoles`;
 export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [consoles, setConsoles] = useState<Console[]>([]);
 
@@ -35,7 +36,7 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addConsole = async (console: Omit<Console, 'id'>) => {
     await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'ngrok-skip-browser-warning': 'true', 'Content-Type': 'application/json' },
       body: JSON.stringify(console),
     });
     await fetchConsoles();

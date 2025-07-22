@@ -33,7 +33,8 @@ export const useTransactions = () => {
   return ctx;
 };
 
-const API_URL = 'http://myapp.test/backend/api/transactions.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/transactions`;
 
 export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -64,17 +65,17 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
   // Update transaction
   const updateTransaction = async (id: number, updates: Partial<Transaction>) => {
-    await fetch(API_URL, {
+    await fetch(`${API_URL}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...updates }),
+      body: JSON.stringify(updates),
     });
     await fetchTransactions();
   };
 
   // Delete transaction
   const deleteTransaction = async (id: number) => {
-    await fetch(`${API_URL}?id=${id}`, {
+    await fetch(`${API_URL}/${id}`, {
       method: 'DELETE',
     });
     await fetchTransactions();

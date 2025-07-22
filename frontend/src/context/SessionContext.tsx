@@ -27,7 +27,8 @@ export const useSessions = () => {
   return ctx;
 };
 
-const API_URL = 'http://myapp.test/backend/api/sessions.php';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/sessions`;
 
 export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [sessions, setSessions] = useState<Session[]>([]);
