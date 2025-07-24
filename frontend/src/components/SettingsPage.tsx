@@ -7,6 +7,7 @@ import type { Settings } from '../context/SettingsContext';
 import toast, { Toaster } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../types/i18n';
+import { saveAs } from 'file-saver';
 
 
 const languageList = [
@@ -169,6 +170,58 @@ function SettingsPage() {
 
   const restartToUpdate = async () => {
     await window.electron.invoke("restart-to-update");
+  };
+
+  // --- Security & Backup Logic ---
+
+  // Export data backup
+  const handleExportBackup = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup/export`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Failed to export backup');
+      const blob = await res.blob();
+      saveAs(blob, `backup-${new Date().toISOString().slice(0,10)}.json`);
+      toast.success('Backup exported successfully!');
+    } catch (err) {
+      toast.error('Failed to export backup');
+    }
+  };
+
+  // Import data backup
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('backup', file);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup/import`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Failed to import backup');
+      toast.success('Backup imported successfully!');
+      // Optionally reload data here
+    } catch (err) {
+      toast.error('Failed to import backup');
+    }
+  };
+
+  // Clear all data
+  const handleClearAllData = async () => {
+    if (!window.confirm('Are you sure you want to clear all data? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/backup/clear`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to clear data');
+      toast.success('All data cleared!');
+      // Optionally reload data here
+    } catch (err) {
+      toast.error('Failed to clear data');
+    }
   };
 
   return (
@@ -391,13 +444,36 @@ function SettingsPage() {
             {t('security_and_backup')}
           </h3>
           <div className="space-y-4">
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+            <button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+              onClick={handleExportBackup}
+            >
               {t('export_data_backup')}
             </button>
-            <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors">
-              {t('import_data_backup')}
-            </button>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors">
+            
+            {/* Improved Import Backup Button */}
+            <div className="relative w-full">
+              <input
+                id="import-backup"
+                type="file"
+                accept=".json"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                onChange={handleImportBackup}
+                tabIndex={-1}
+              />
+              <label
+                htmlFor="import-backup"
+                className="w-full inline-block bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors text-center cursor-pointer"
+                style={{ position: 'relative', zIndex: 1 }}
+              >
+                {t('import_data_backup')}
+              </label>
+            </div>
+
+            <button
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
+              onClick={handleClearAllData}
+            >
               {t('clear_all_data')}
             </button>
             <div className="pt-4 border-t border-gray-600">

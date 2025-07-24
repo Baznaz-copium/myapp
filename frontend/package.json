@@ -1,13 +1,13 @@
 {
   "name": "ps4-rental-management",
-  "private": true,
-  "version": "1.5.1",
+  "private": false,
+  "version": "1.5.4",
   "description": "PlayStation Rental Management App",
   "author": "Baznaz <baznazweb@gmail.com>",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host ",
     "build": "vite build",
     "build:react": "vite build",
     "build:electron": "electron-builder",
@@ -24,6 +24,7 @@
     "date-fns": "^3.0.0",
     "electron-updater": "^6.6.2",
     "express": "^5.1.0",
+    "file-saver": "^2.0.5",
     "framer-motion": "^12.19.1",
     "html2pdf.js": "^0.10.3",
     "i18next": "^25.2.1",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^18.3.5",
     "@types/react-date-range": "^1.4.10",
     "@types/react-dom": "^18.3.0",
@@ -75,7 +77,7 @@
         "provider": "github",
         "owner": "Baznaz-copium",
         "repo": "myapp",
-        "private": true
+        "private": false
       }
     ],
     "productName": "controller",

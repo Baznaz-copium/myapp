@@ -2,7 +2,11 @@
   "name": "myapp-root",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\""
+    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "build": "npm --prefix frontend run build && npm --prefix backend run build",
+    "build:electron": "npm --prefix frontend run build:electron",
+    "electron": "npm --prefix frontend run electron"
+
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

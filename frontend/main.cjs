@@ -94,6 +94,10 @@ autoUpdater.on("update-downloaded", () => {
   autoUpdater.quitAndInstall();
 });
 
+autoUpdater.on('error', (err) => {
+  console.error('AutoUpdater error:', err);
+});
+
 app.on('window-all-closed', () => {
   if (serverInstance) serverInstance.close();
   if (process.platform !== 'darwin') app.quit();

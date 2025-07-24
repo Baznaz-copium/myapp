@@ -8,4 +8,9 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   base: './',
+  server: {
+    host: true,
+    port: 5173, // if you want to use http://baznaz.local without a port
+    allowedHosts: ['baznaz.local'],
+  },
 });

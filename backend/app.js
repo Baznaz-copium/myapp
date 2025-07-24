@@ -15,7 +15,7 @@ const settingsRouter = require('./api/settings');
 const transactionsRouter = require('./api/transactions');
 const usersRouter = require('./api/users');
 const consumationRouter = require('./api/consumation');
-
+const backupRouter = require('./api/backup'); // Import backup router
 const app = express();
 
 // Middleware
@@ -33,6 +33,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/consumation', consumationRouter);
+app.use('/api/backup', backupRouter);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
