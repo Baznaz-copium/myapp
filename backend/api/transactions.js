@@ -46,6 +46,8 @@ router.post('/', async (req, res) => {
       ]
     );
     res.json({ id: result.insertId });
+    const io = req.app.get('io');
+    io.emit('transactions-updated');
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -94,6 +96,8 @@ router.put('/:id', async (req, res) => {
       try {
         await pool.execute(sql, params);
         res.json({ success: true });
+        const io = req.app.get('io');
+        io.emit('transactions-updated');
       } catch (sqlErr) {
         console.error('SQL error:', sql, params, sqlErr);
         res.status(500).json({ error: sqlErr.message, sql, params });
@@ -114,6 +118,8 @@ router.delete('/:id', async (req, res) => {
   try {
     await pool.execute('DELETE FROM transactions WHERE id=?', [id]);
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('transactions-updated');
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

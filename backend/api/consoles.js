@@ -42,6 +42,8 @@ router.post('/', async (req, res) => {
       [name, status, pricePerHour]
     );
     res.json({ id: result.insertId });
+    const io = req.app.get('io');
+    io.emit('consoles-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -56,6 +58,8 @@ router.put('/', async (req, res) => {
       [name, status, pricePerHour, id]
     );
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('consoles-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -67,6 +71,8 @@ router.delete('/', async (req, res) => {
   try {
     await pool.execute('DELETE FROM consoles WHERE id=?', [id]);
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('consoles-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

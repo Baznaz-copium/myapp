@@ -63,7 +63,7 @@ function SettingsPage() {
   // Play sound effect if enabled in settings
   const playSound = () => {
     if (formData.soundEffects) {
-      const audio = new Audio('/sounds/click.mp3'); // Put your sound in /public/sounds/
+      const audio = new Audio('/sounds/click.wav'); // Put your sound in /public/sounds/
       audio.play();
     }
   };
@@ -234,7 +234,10 @@ function SettingsPage() {
           {t('system_settings')}
         </h2>
         <button
-          onClick={handleSave}
+          onClick={() => {
+            playSound();
+            handleSave();
+          }}
           className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
             saved 
               ? 'bg-green-600 text-white' 

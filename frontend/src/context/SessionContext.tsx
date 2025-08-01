@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { io } from "socket.io-client";
 
 export interface Session {
   id: number;
@@ -67,6 +68,20 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   useEffect(() => { fetchSessions(); }, []);
+
+      useEffect(() => {
+      const socket = io(API_BASE_URL, {
+        transports: ["websocket"],
+      });
+
+      socket.on("sessions-updated", () => {
+        fetchSessions();
+      });
+    
+      return () => {
+        socket.disconnect();
+      };
+    }, []);
 
   return (
     <SessionContext.Provider value={{ sessions, fetchSessions, startSession, stopSession, extendSession }}>

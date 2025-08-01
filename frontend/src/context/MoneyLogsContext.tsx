@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { io } from "socket.io-client";
 
 export type MoneyLog = {
   id: number;
@@ -78,6 +79,18 @@ export const MoneyLogsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
   useEffect(() => {
     fetchLogs();
+  }, []);
+
+  useEffect(() => {
+    const socket = io(API_BASE_URL, { 
+      transports: ["websocket"],
+    }); 
+    socket.on("money-logs-updated", () => {
+      fetchLogs();
+    });
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   return (

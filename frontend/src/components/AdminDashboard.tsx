@@ -89,6 +89,32 @@ function AdminDashboard() {
     }
   };
 
+  const statusCards = [
+    {
+      label: 'Available',
+      count: availableCount,
+      icon: <Monitor className="w-6 h-6 text-green-300" />,
+      gradient: 'from-green-500/40 to-green-800/60',
+      border: 'border-green-400/50',
+      shadow: 'shadow-green-500/30'
+    },
+    {
+      label: 'In Use',
+      count: rentedCount,
+      icon: <Play className="w-6 h-6 text-red-300" />,
+      gradient: 'from-red-500/40 to-red-800/60',
+      border: 'border-red-400/50',
+      shadow: 'shadow-red-500/30'
+    },
+    {
+      label: 'Maintenance',
+      count: maintenanceCount,
+      icon: <SettingsIcon className="w-6 h-6 text-yellow-300" />,
+      gradient: 'from-yellow-400/40 to-yellow-800/60',
+      border: 'border-yellow-400/50',
+      shadow: 'shadow-yellow-500/30'
+    }
+  ];
   // Console editing
   const handleEditConsole = (consoleId: number, name: string) => {
     setEditingConsole(consoleId);
@@ -384,7 +410,7 @@ const todayRevenue = transactions
   .filter(t => t.createdAt && t.createdAt.startsWith(today) && t.status === 'completed')
   .reduce((sum, t) => sum + Number(t.amountPaid || 0), 0);
 
-const todayTotalRevenue = revenue.today + todayRevenue
+const todayTotalRevenue = revenue + todayRevenue
 
   // Auto-stop any expired session, even if not on consoles tab
   useEffect(() => {
@@ -508,9 +534,9 @@ const todayTotalRevenue = revenue.today + todayRevenue
       <div className="mx-auto px-4 sm:px-6 lg:px-6">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 ">
               <Gamepad2 className="w-8 h-8 text-blue-400" />
-              <span className="text-xl font-bold text-white">{settings?.businessName || 'Baznaz Gaming'}</span>
+              <span className="text-xl font-bold text-white hidden sm:block">{settings?.businessName || 'Baznaz Gaming'}</span>
             </div>
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-4">
@@ -576,7 +602,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
             <div className="flex items-center space-x-2 text-sm text-gray-300">
               <span>Today: {todayTotalRevenue.toFixed(2)} {settings?.currency || 'DA'}</span>
             </div>
-            <div className="text-sm text-gray-300">
+            <div className="text-sm text-gray-300 hidden sm:block">
               {currentTime.toLocaleTimeString()}
             </div>
             
@@ -699,7 +725,7 @@ const todayTotalRevenue = revenue.today + todayRevenue
                     onClick={() => { setActiveTab('mlogs'); setMobileNavOpen(false); }}
                     className={`block w-full text-left px-4 py-2 rounded-lg ${activeTab === 'mlogs' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
                   >
-                    <BarChart3 className="inline w-4 h-4 mr-2" /> M.logs
+                    <BarChart3 className="inline w-4 h-4 mr-2" /> Money Logs
                   </button>
                 )}
                 {user?.role === 'admin' && (
@@ -791,51 +817,37 @@ const todayTotalRevenue = revenue.today + todayRevenue
     )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 ">
         {activeTab === 'consoles' && (
           <>
-            {/* Status Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Available</p>
-                    <p className="text-2xl font-bold text-green-400">{availableCount}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                    <Monitor className="w-6 h-6 text-green-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">In Use</p>
-                    <p className="text-2xl font-bold text-red-400">{rentedCount}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
-                    <Play className="w-6 h-6 text-red-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Maintenance</p>
-                    <p className="text-2xl font-bold text-yellow-400">{maintenanceCount}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                    <SettingsIcon className="w-6 h-6 text-yellow-400" />
-                  </div>
-                </div>
-              </div>
-            </div>
+{/* Status Overview */}
+<div className='bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700'>
+<div className="grid grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
+  {statusCards.map(({ label, count, icon, gradient, border, shadow }) => (
+    <div
+      key={label}
+      className={`bg-gradient-to-br ${gradient} border ${border} shadow-md ${shadow} rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center backdrop-blur-md transition hover:scale-[1.02]`}
+    >
+      {/* Number and Icon side by side */}
+      <div className="flex items-center justify-center gap-2 w-full mb-1">
+        <span className="text-2xl sm:text-4xl font-extrabold text-white">{count}</span>
+        <span className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white/10 rounded-full">
+          {icon}
+        </span>
+      </div>
+      {/* Label below, truncated if too long */}
+      <p className="text-xs sm:text-xs text-white/80 uppercase tracking-widest text-center w-full truncate">
+        {label}
+      </p>
+    </div>
+  ))}
+</div>
 
-            <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
               {/* Console Grid - Left Side (65%) */}
-              <div className="lg:w-2/3">
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-                  <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div className="w-full lg:w-2/3">
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-700">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3 flex-wrap">
                     <h2 className="text-xl font-semibold text-white flex items-center">
                       <Gamepad2 className="w-5 h-5 mr-2 text-blue-400" />
                       PS4 Consoles
@@ -862,278 +874,384 @@ const todayTotalRevenue = revenue.today + todayRevenue
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {consoles.map((console) => (
-                      <div
-                        key={console.id}
-                        onClick={() => setSelectedConsole(console.id)}
-                        className={`${getStatusColorborder(console.status)} rounded-lg p-4 cursor-pointer transition-all duration-200 border-2 hover:bg-gray-700/70 ${
-                          selectedConsole === console.id 
-                            ? 'border-blue-500 bg-blue-500/10' 
-                            : 'border-gray-600 hover:border-gray-500'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(console.status)}`} />
-                          <div className="flex space-x-1">
+                    {consoles.map((console) => {
+                      const isSelected = selectedConsole === console.id;
+                      const session = sessions.find(s => s.consoleId === console.id && s.running);
+
+                      return (
+                        <div
+                          key={console.id}
+                          onClick={() => setSelectedConsole(console.id)}
+                          className={`rounded-xl border-2 cursor-pointer transition-all duration-200 p-4 relative overflow-hidden shadow-md group
+                            ${isSelected ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 hover:border-blue-400 bg-gray-800/50'}
+                            ${getStatusColorborder(console.status)} hover:shadow-lg`}
+                        >
+                          {/* Status Dot + Actions */}
+                          <div className="flex justify-between items-center mb-3">
+                            <span className={`w-3 h-3 rounded-full ${getStatusColor(console.status)}`} />
                             {user?.role === 'admin' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditConsole(console.id, console.name);
-                              }}
-                              className="text-blue-400 hover:text-blue-600 transition-colors"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                            )}
-                            {user?.role === 'admin' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirm({ ids: [console.id], show: true });
-                              }}
-                              className="text-red-400 hover:text-red-600 transition-colors"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditConsole(console.id, console.name);
+                                  }}
+                                  className="text-blue-400 hover:text-blue-600 transition-colors"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirm({ ids: [console.id], show: true });
+                                  }}
+                                  className="text-red-400 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                           </div>
-                        </div>
-                        <div className="mb-3">
-                          <Gamepad2 className="w-8 h-8 text-blue-400 mx-auto" />
-                        </div>
-                        {editingConsole === console.id ? (
-                          <div className="space-y-2">
-                            <input
-                              type="text"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              className="w-full bg-gray-600 text-white text-sm rounded px-2 py-1 border border-gray-500 focus:border-blue-500 focus:outline-none"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="flex space-x-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSaveEdit();
-                                }}
-                                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 rounded transition-colors"
-                              >
-                                <Save className="w-3 h-3 mx-auto" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingConsole(null);
-                                  setEditName('');
-                                }}
-                                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs py-1 rounded transition-colors"
-                              >
-                                <X className="w-3 h-3 mx-auto" />
-                              </button>
+
+                          {/* Icon */}
+                          <div className="flex justify-center mb-3">
+                            <Gamepad2 className="w-8 h-8 text-blue-400" />
+                          </div>
+
+                          {/* Editable or Static Name */}
+                          {editingConsole === console.id ? (
+                            <div className="space-y-2">
+                              <input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="w-full bg-gray-600 text-white text-sm rounded px-2 py-1 border border-gray-500 focus:border-blue-500 focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSaveEdit();
+                                  }}
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 rounded transition-colors"
+                                >
+                                  <Save className="w-3 h-3 mx-auto" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingConsole(null);
+                                    setEditName('');
+                                  }}
+                                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs py-1 rounded transition-colors"
+                                >
+                                  <X className="w-3 h-3 mx-auto" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <>
-                            <h3 className="text-sm font-medium text-white text-center mb-2">
-                              {console.name}
-                            </h3>
-                            <p className="text-xs text-gray-400 text-center">
-                              {console.pricePerHour} {settings?.currency || 'DA'}/hour
-                            </p>
-                                {sessions.find(s => s.consoleId === console.id && s.running) && (() => {
-                                  const s = sessions.find(s => s.consoleId === console.id && s.running)!;
-                                  const name1 = s.Player_1?.trim() || '';
-                                  const name2 = s.Player_2?.trim() || '';
-                                  const playerNames = [name1, name2].filter(Boolean).join(' & ') || 'Anonymous';
-                                  const now = new Date();
-                                  const start = new Date(s.startTime);
-                                  const used = Math.floor((now.getTime() - start.getTime()) / 1000);
-                                  const total = s.totalMinutes * 60;
-                                  const progress = Math.min(100, (used / total) * 100);
-                                  
-                                  return (
-                                    <div className="mt-3 pt-3 border-t border-gray-600">
-                                      <p className="text-xs text-gray-400 text-center">
-                                          {playerNames}
-                                      </p>
-                                      <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
-                                        <div 
-                                          className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-1000"
-                                          style={{ width: `${progress}%` }}
-                                        />
+                          ) : (
+                            <>
+                              <h3 className="text-center text-white font-semibold mb-1 text-sm">{console.name}</h3>
+                              <p className="text-center text-gray-400 text-xs">
+                                {console.pricePerHour} {settings?.currency || 'DA'}/hr
+                              </p>
+                            </>
+                          )}
+
+                          {/* Player Info + Progress */}
+                          {session && (
+                            <div className="mt-4 pt-3 border-t border-gray-700">
+                              <p className="text-xs text-center text-white/80 mb-1">{[session.Player_1, session.Player_2].filter(Boolean).join(' & ') || 'Anonymous'}</p>
+                              <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-blue-500 to-green-500 h-full transition-all duration-1000"
+                                  style={{ width: `${Math.min(100, (Math.floor((new Date().getTime() - new Date(session.startTime).getTime()) / 1000) / (session.totalMinutes * 60)) * 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* MOBILE: Timer Control below selected console */}
+                          {isSelected && (
+                            <div className="block lg:hidden mt-4">
+                              <div className={`bg-gray-800/70 rounded-xl p-4 border ${getStatusColorborder(console.status)} border-gray-700`}>
+                                <h2 className="text-lg font-semibold text-white mb-3 flex items-center">
+                                  <Clock className="w-5 h-5 mr-2 text-blue-400" />
+                                  Timer Control
+                                </h2>
+                                {session ? (
+                                  <div className="space-y-3 mb-4">
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-400">Start:</span>
+                                        <span className="font-mono text-white">{new Date(session.startTime).toLocaleTimeString()}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-400">End:</span>
+                                        <span className="font-mono text-white">{new Date(session.endTime).toLocaleTimeString()}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-400">Used:</span>
+                                        <span className="font-mono text-green-400">{getSessionInfo(session)?.usedStr}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-400">Left:</span>
+                                        <span className="font-mono text-blue-400">{getSessionInfo(session)?.remainingStr}</span>
                                       </div>
                                     </div>
-                                  );
-                                })()}
-                          </>
-                        )}
-                      </div>
-                    ))}
+                                    <div className="flex justify-between items-center pt-2 border-t border-gray-600">
+                                      <span className="text-gray-400">Price:</span>
+                                      <span className="text-lg font-bold text-yellow-400">{getSessionInfo(session)?.price} {settings?.currency || 'DA'}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-center text-gray-400 py-8">
+                                    <Monitor className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                                    <p>No session running</p>
+                                  </div>
+                                )}
+                                {/* Progress Bar */}
+                                {session && (
+                                  <div className="mb-4">
+                                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                      <span>Progress</span>
+                                      <span>{getSessionInfo(session)?.progress.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-700 rounded-full h-2">
+                                      <div 
+                                        className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-1000"
+                                        style={{ width: `${getSessionInfo(session)?.progress}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Time Buttons */}
+                                {!session && (
+                                  <div className="mb-4">
+                                    <p className="text-sm text-gray-400 mb-2">Quick Time Selection</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {[30, 60, 90, 120, 150, 180].map((minutes) => (
+                                        <button
+                                          key={minutes}
+                                          onClick={() =>
+                                            console.status === 'available'
+                                              ? handleStartSession(minutes)
+                                              : handleExtendSession(minutes)
+                                          }
+                                          disabled={console.status === 'maintenance'}
+                                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium w-full"
+                                        >
+                                          {minutes}m
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Control Buttons */}
+                                <div className="space-y-2">
+                                  {console.status === 'rented' && session && (
+                                    <>
+                                      <button
+                                        onClick={() => setShowStopConfirm(true)}
+                                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 font-semibold"
+                                      >
+                                        <Square className="w-4 h-4" />
+                                        <span>Stop Session</span>
+                                      </button>
+                                      {Boolean(settings?.allowExtensions) && (
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                          <button
+                                            onClick={() => handleReduceSession(30)}
+                                            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                            disabled={Number(session.totalMinutes) <= 30}
+                                          >
+                                            <Clock className="w-4 h-4" />
+                                            <span>-30min</span>
+                                          </button>
+                                          <button
+                                            onClick={() => handleReduceSession(60)}
+                                            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                            disabled={Number(session.totalMinutes) <= 60}
+                                          >
+                                            <Clock className="w-4 h-4" />
+                                            <span>-60min</span>
+                                          </button>
+                                          <button
+                                            onClick={() => handleExtendSession(30)}
+                                            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                          >
+                                            <Clock className="w-4 h-4" />
+                                            <span>+30min</span>
+                                          </button>
+                                          <button
+                                            onClick={() => handleExtendSession(60)}
+                                            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                          >
+                                            <Clock className="w-4 h-4" />
+                                            <span>+60min</span>
+                                          </button>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-              {/* Timer Panel - Right Side (35%) */}
-              <div className="lg:w-1/3">
-                <div className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border ${getStatusColorborder(selectedConsoleData?.status || 'default')} border-gray-700`}>
-                  <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-                    <Clock className="w-5 h-5 mr-2 text-blue-400" />
-                    Timer Control
-                  </h2>
-                  {selectedConsole ? (
-                    <>
-                      <div className="mb-6">
-                        <h3 className="text-lg font-medium text-white mb-2">
-                          {selectedConsoleData?.name}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${getStatusColor(selectedConsoleData?.status || 'available')}`} />
-                          <span className="text-sm text-gray-400">
-                            {getStatusText(selectedConsoleData?.status || 'available')}
-                          </span>
-                        </div>
+        {/* Timer Panel - Right Side (35%) */}
+        <div className="w-full lg:w-1/3 mt-4 lg:mt-0 hidden lg:block">
+          <div className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border ${getStatusColorborder(selectedConsoleData?.status || 'default')} border-gray-700`}>
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <Clock className="w-5 h-5 mr-2 text-blue-400" />
+              Timer Control
+            </h2>
+            {selectedConsole ? (
+              <>
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-white mb-2">
+                    {selectedConsoleData?.name}
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(selectedConsoleData?.status || 'available')}`} />
+                    <span className="text-sm text-gray-400">
+                      {getStatusText(selectedConsoleData?.status || 'available')}
+                    </span>
+                  </div>
+                </div>
+                {/* Time Display */}
+                {session ? (
+                  <div className="space-y-3 mb-6">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Start:</span>
+                        <span className="font-mono text-white">{new Date(session.startTime).toLocaleTimeString()}</span>
                       </div>
-                      {/* Time Display */}
-                      {session ? (
-                        <div className="space-y-3 mb-6">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-400">Start Time:</span>
-                            <span className="text-sm font-mono text-white">{new Date(session.startTime).toLocaleTimeString()}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-400">End Time:</span>
-                            <span className="text-sm font-mono text-white">{new Date(session.endTime).toLocaleTimeString()}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-400">Used Time:</span>
-                            <span className="text-sm font-mono text-green-400">{getSessionInfo(session)?.usedStr}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-400">Remaining:</span>
-                            <span className="text-sm font-mono text-blue-400">{getSessionInfo(session)?.remainingStr}</span>
-                          </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-600">
-                            <span className="text-sm text-gray-400">Price:</span>
-                            <span className="text-lg font-bold text-yellow-400">{getSessionInfo(session)?.price} {settings?.currency || 'DA'}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center text-gray-400 py-12">
-                          <Monitor className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>No session running</p>
-                        </div>
-                      )}
-                      {/* Progress Bar */}
-                      {session && (
-                        <div className="mb-6">
-                          <div className="flex justify-between text-xs text-gray-400 mb-1">
-                            <span>Progress</span>
-                            <span>{getSessionInfo(session)?.progress.toFixed(1)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-700 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-1000"
-                              style={{ width: `${getSessionInfo(session)?.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {/* Time Buttons */}
-                      {!session && (
-                        <div className="mb-6">
-                          <p className="text-sm text-gray-400 mb-3">Quick Time Selection</p>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[1, 60, 90, 120, 150, 180].map((minutes) => (
-                              <button
-                                key={minutes}
-                                onClick={() =>
-                                  selectedConsoleData?.status === 'available'
-                                    ? handleStartSession(minutes)
-                                    : handleExtendSession(minutes)
-                                }
-                                disabled={selectedConsoleData?.status === 'maintenance'}
-                                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium"
-                              >
-                                {minutes}m
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {/* Control Buttons */}
-                        <div className="space-y-2">
-                          {selectedConsoleData?.status === 'rented' && (
-                            <>
-                              <button
-                                onClick={() => setShowStopConfirm(true)}
-                                className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                              >
-                                <Square className="w-4 h-4" />
-                                <span>Stop Session</span>
-                              </button>
-                              {settings?.allowExtensions && (
-                              <div className="flex flex-wrap -mx-2">
-                                {/* Reduce time -30min */}
-                                <div className="w-1/2 px-2 mb-4">
-                                  <button
-                                    onClick={() => handleReduceSession(30)}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                                    disabled={Number(session?.totalMinutes || 0) <= 30}
-                                  >
-                                    <Clock className="w-4 h-4" />
-                                    <span>-30min</span>
-                                  </button>
-                                </div>
-
-                                {/* Reduce time -60min */}
-                                <div className="w-1/2 px-2 mb-4">
-                                  <button
-                                    onClick={() => handleReduceSession(60)}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                                    disabled={Number(session?.totalMinutes || 0) <= 60}
-                                  >
-                                    <Clock className="w-4 h-4" />
-                                    <span>-60min</span>
-                                  </button>
-                                </div>
-
-                                {/* Extend time +30min */}
-                                <div className="w-1/2 px-2 mb-4">
-                                  <button
-                                    onClick={() => handleExtendSession(30)}
-                                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                                  >
-                                    <Clock className="w-4 h-4" />
-                                    <span>+30min</span>
-                                  </button>
-                                </div>
-
-                                {/* Extend time +60min */}
-                                <div className="w-1/2 px-2 mb-4">
-                                  <button
-                                    onClick={() => handleExtendSession(60)}
-                                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                                  >
-                                    <Clock className="w-4 h-4" />
-                                    <span>+60min</span>
-                                  </button>
-                                </div>
-                              </div>
-
-                              )}
-                            </>
-                          )}
-                        </div>
-                    </>
-                  ) : (
-                    <div className="text-center text-gray-400 py-12">
-                      <Monitor className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Select a console to manage timer</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">End:</span>
+                        <span className="font-mono text-white">{new Date(session.endTime).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Used:</span>
+                        <span className="font-mono text-green-400">{getSessionInfo(session)?.usedStr}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Left:</span>
+                        <span className="font-mono text-blue-400">{getSessionInfo(session)?.remainingStr}</span>
+                      </div>
                     </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-600">
+                      <span className="text-gray-400">Price:</span>
+                      <span className="text-lg font-bold text-yellow-400">{getSessionInfo(session)?.price} {settings?.currency || 'DA'}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-12">
+                    <Monitor className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No session running</p>
+                  </div>
+                )}
+                {/* Progress Bar */}
+                {session && (
+                  <div className="mb-6">
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>Progress</span>
+                      <span>{getSessionInfo(session)?.progress.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${getSessionInfo(session)?.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {/* Time Buttons */}
+                {!session && (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-400 mb-3">Quick Time Selection</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[30, 60, 90, 120, 150, 180].map((minutes) => (
+                        <button
+                          key={minutes}
+                          onClick={() =>
+                            selectedConsoleData?.status === 'available'
+                              ? handleStartSession(minutes)
+                              : handleExtendSession(minutes)
+                          }
+                          disabled={selectedConsoleData?.status === 'maintenance'}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium w-full"
+                        >
+                          {minutes}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Control Buttons */}
+                <div className="space-y-2">
+                  {selectedConsoleData?.status === 'rented' && session && (
+                    <>
+                      <button
+                        onClick={() => setShowStopConfirm(true)}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 font-semibold"
+                      >
+                        <Square className="w-4 h-4" />
+                        <span>Stop Session</span>
+                      </button>
+                      {Boolean(settings?.allowExtensions) && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <button
+                            onClick={() => handleReduceSession(30)}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                            disabled={Number(session.totalMinutes) <= 30}
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span>-30min</span>
+                          </button>
+                          <button
+                            onClick={() => handleReduceSession(60)}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                            disabled={Number(session.totalMinutes) <= 60}
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span>-60min</span>
+                          </button>
+                          <button
+                            onClick={() => handleExtendSession(30)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span>+30min</span>
+                          </button>
+                          <button
+                            onClick={() => handleExtendSession(60)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span>+60min</span>
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
+              </>
+            ) : (
+              <div className="text-center text-gray-400 py-12">
+                <Monitor className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Select a console to manage timer</p>
               </div>
-            </div>
+            )}
+          </div>
+        </div>
+      </div>
+  </div>
           </>
         )}
         {activeTab === 'cash' && <CashManagement />}
@@ -1149,4 +1267,3 @@ const todayTotalRevenue = revenue.today + todayRevenue
 }
 
 export default AdminDashboard;
-

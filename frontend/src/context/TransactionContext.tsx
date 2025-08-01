@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { io } from "socket.io-client";
 
 export interface Transaction {
   id: number;
@@ -84,7 +85,21 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     fetchTransactions();
   }, []);
+      
+    useEffect(() => {
+      const socket = io(API_BASE_URL, {
+        transports: ["websocket"],
+      });
 
+      socket.on("transactions-updated", () => {
+        fetchTransactions();
+      });
+    
+      return () => {
+        socket.disconnect();
+      };
+    }, []);
+  
   return (
     <TransactionContext.Provider value={{ transactions, fetchTransactions, addTransaction, updateTransaction , deleteTransaction  }}>
       {children}

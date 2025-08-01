@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { io } from "socket.io-client";
 
 export type Consumable = {
   id: number;
@@ -8,12 +9,27 @@ export type Consumable = {
   unit_price: number;
   total_cost: number;
   sell_price: number;
+  barcode?: string;
 };
 
-export type RevenueStats = {
-  today: number;
-  week: number;
-  month: number;
+export type Sale = {
+  id: number;
+  sale_id: number;
+  consumable_id: number;
+  amount: number;
+  sell_price: number;
+  name: string;
+  type: string;
+  created_at: string;
+  unit_price?: number;
+};
+
+export type StockMove = {
+  date: string;
+  name: string;
+  type: string;
+  change: number;
+  reason: string;
 };
 
 type ConsumationContextType = {
@@ -22,6 +38,7 @@ type ConsumationContextType = {
   fetchConsumables: () => void;
   addConsumable: (c: Omit<Consumable, "id">) => Promise<void>;
   sellConsumable: (id: number, amount: number, price: number) => Promise<void>;
+  multiSellConsumable: (scannedItems: { id: number; _qty?: number; _price?: number; sell_price: number }[]) => Promise<void>;
   updateConsumable: (
     id: number,
     name: string,
@@ -31,9 +48,13 @@ type ConsumationContextType = {
     sell_price: number
   ) => Promise<void>;
   searchConsumables: (q: string, type: string) => Promise<void>;
-  revenue: RevenueStats;
-  fetchRevenue: () => void;
   deleteConsumable: (id: number) => Promise<void>;
+  // Report data
+  sales: Sale[];
+  stockMoves: StockMove[];
+  revenue: number;
+  profit: number;
+  fetchReport: () => Promise<void>;
 };
 
 const ConsumationContext = createContext<ConsumationContextType>({} as any);
@@ -46,8 +67,12 @@ const API_URL = `${API_BASE_URL}/api/consumation`;
 export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [eatables, setEatables] = useState<Consumable[]>([]);
   const [drinkables, setDrinkables] = useState<Consumable[]>([]);
-  const [revenue, setRevenue] = useState<RevenueStats>({ today: 0, week: 0, month: 0 });
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [stockMoves, setStockMoves] = useState<StockMove[]>([]);
+  const [revenue, setRevenue] = useState<number>(0);
+  const [profit, setProfit] = useState<number>(0);
 
+  // Fetch consumables for POS
   const fetchConsumables = async () => {
     const res = await fetch(`${API_URL}/list`);
     const data: Consumable[] = await res.json();
@@ -55,6 +80,7 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setDrinkables(Array.isArray(data) ? data.filter(d => d.type === "drinkable") : []);
   };
 
+  // Add new consumable
   const addConsumable = async (c: Omit<Consumable, "id">) => {
     await fetch(`${API_URL}/add`, {
       method: "POST",
@@ -64,6 +90,7 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchConsumables();
   };
 
+  // Sell single consumable
   const sellConsumable = async (id: number, amount: number, sell_price: number) => {
     await fetch(`${API_URL}/sell`, {
       method: "POST",
@@ -71,9 +98,27 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       headers: { "Content-Type": "application/json" },
     });
     fetchConsumables();
-    fetchRevenue();
+    fetchReport();
   };
 
+  // Sell multiple consumables
+  const multiSellConsumable = async (scannedItems: { id: number; _qty?: number; _price?: number; sell_price: number }[]) => {
+    await fetch(`${API_URL}/multi-sell`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: scannedItems.map(item => ({
+          consumable_id: item.id,
+          amount: item._qty || 1,
+          sell_price: item._price ?? item.sell_price
+        }))
+      })
+    });
+    fetchConsumables();
+    fetchReport();
+  };
+
+  // Update consumable
   const updateConsumable = async (
     id: number,
     name: string,
@@ -90,6 +135,7 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchConsumables();
   };
 
+  // Delete consumable
   const deleteConsumable = async (id: number) => {
     await fetch(`${API_URL}/delete`, {
       method: "DELETE",
@@ -99,20 +145,7 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchConsumables();
   };
 
-  const fetchRevenue = async () => {
-    const [today, week, month] = await Promise.all([
-      fetch(`${API_URL}/revenue?period=today`).then(r => r.json()),
-      fetch(`${API_URL}/revenue?period=week`).then(r => r.json()),
-      fetch(`${API_URL}/revenue?period=month`).then(r => r.json()),
-    ]);
-
-    setRevenue({
-      today: Number(today.revenue || 0),
-      week: Number(week.revenue || 0),
-      month: Number(month.revenue || 0),
-    });
-  };
-
+  // Search consumables
   const searchConsumables = async (q: string, type: string) => {
     const res = await fetch(`${API_URL}/search?q=${encodeURIComponent(q)}&type=${type}`);
     const data = await res.json();
@@ -120,10 +153,37 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setDrinkables(Array.isArray(data) ? data.filter((d: any) => d.type === "drinkable") : []);
   };
 
+  // Fetch all report data (sales, stock moves, revenue, profit)
+  const fetchReport = async () => {
+    const res = await fetch(`${API_URL}/report`);
+    const data = await res.json();
+    setSales(data.sales || []);
+    setStockMoves(data.stock_moves || []);
+    setRevenue(Number(data.revenue || 0));
+    setProfit(Number(data.profit || 0));
+  };
+
+  // Initial load
   useEffect(() => {
     fetchConsumables();
-    fetchRevenue();
+    fetchReport();
     // eslint-disable-next-line
+  }, []);
+
+  // WebSocket for real-time updates
+  useEffect(() => {
+    const socket = io(API_BASE_URL, {
+      transports: ["websocket"],
+    });
+
+    socket.on("consumables-updated", () => {
+      fetchConsumables();
+      fetchReport();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   return (
@@ -134,11 +194,15 @@ export const ConsumationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         fetchConsumables,
         addConsumable,
         sellConsumable,
+        multiSellConsumable,
         updateConsumable,
         searchConsumables,
-        revenue,
-        fetchRevenue,
         deleteConsumable,
+        sales,
+        stockMoves,
+        revenue,
+        profit,
+        fetchReport,
       }}
     >
       {children}

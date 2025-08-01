@@ -37,6 +37,8 @@ router.post('/', async (req, res) => {
       [type, source, amount, note, date || new Date().toISOString().slice(0,10), recurring ? 1 : 0]
     );
     res.json({ success: true, id: result.insertId });
+    const io = req.app.get('io');
+    io.emit('money-logs-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -59,6 +61,8 @@ router.put('/', async (req, res) => {
   try {
     await pool.execute(`UPDATE money_logs SET ${fields.join(', ')} WHERE id=?`, values);
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('money-logs-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -71,6 +75,8 @@ router.delete('/', async (req, res) => {
   try {
     await pool.execute('DELETE FROM money_logs WHERE id=?', [id]);
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('money-logs-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

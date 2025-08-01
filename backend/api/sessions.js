@@ -32,6 +32,8 @@ router.post('/', async (req, res) => {
       [consoleId, Player_1, Player_2, startTime, endTime, totalMinutes]
     );
     res.json({ id: result.insertId });
+    const io = req.app.get('io');
+    io.emit('sessions-updated');  
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -46,6 +48,8 @@ router.put('/', async (req, res) => {
       [endTime, totalMinutes, running, id]
     );
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('sessions-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -57,6 +61,8 @@ router.delete('/', async (req, res) => {
   try {
     await pool.execute('DELETE FROM sessions WHERE id=?', [id]);
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('sessions-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -73,6 +79,8 @@ router.patch('/:id', async (req, res) => {
       [endTime, totalMinutes, id]
     );
     res.json({ success: true });
+    const io = req.app.get('io');
+    io.emit('sessions-updated');
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

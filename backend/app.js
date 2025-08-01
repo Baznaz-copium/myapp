@@ -5,6 +5,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const http = require('http');
+const socketio = require('socket.io');
 
 const authRouter = require('./api/auth');
 const consolesRouter = require('./api/consoles');
@@ -35,6 +37,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/consumation', consumationRouter);
 app.use('/api/backup', backupRouter);
 
+
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
@@ -44,7 +47,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
+const server = http.createServer(app);
+const io = socketio(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  }
+});
+
+app.set('io', io); // Make io available in routes
+
 const PORT = process.env.PORT || 3001;
-app.listen(3001, '0.0.0.0', () => {
-  console.log('Server running on port 3001');
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('Server running on port', PORT);
 });

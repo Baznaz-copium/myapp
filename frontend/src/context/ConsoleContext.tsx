@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { io } from "socket.io-client";
 
 export interface Console {
   id: number;
@@ -62,6 +63,20 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     fetchConsoles();
+  }, []);
+
+  useEffect(() => {
+    const socket = io(API_BASE_URL, {
+      transports: ["websocket"],
+    });
+
+    socket.on("consoles-updated", () => {
+      fetchConsoles();
+    });
+  
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   return (

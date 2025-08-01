@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMoneyLogs } from '../context/MoneyLogsContext';
 import html2pdf from 'html2pdf.js';
 
@@ -27,11 +27,18 @@ const GROUP_OPTIONS = [
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#f87171', '#a78bfa', '#facc15', '#60a5fa', '#34d399'];
 
+function formatDate(dateStr: string) {
+  // Handles both '2025-07-20T23:00:00.000Z' and '2025-07-20'
+  return dateStr ? dateStr.split('T')[0] : '';
+}
+
 function ReportsPage() {
   const { logs } = useMoneyLogs();
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month' | 'source'>('day');
+  const [showCharts, setShowCharts] = useState(true);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Grouped stats for table
   const getWeek = (dateStr: string) => {
     const date = new Date(dateStr);
     const year = date.getFullYear();
@@ -46,7 +53,7 @@ function ReportsPage() {
     const stats: Record<string, { income: number; outcome: number; net: number }> = {};
     logs.forEach(log => {
       let key = '';
-      if (groupBy === 'day') key = log.date;
+      if (groupBy === 'day') key = formatDate(log.date);
       else if (groupBy === 'week') key = getWeek(log.date);
       else if (groupBy === 'month') key = getMonth(log.date);
       else if (groupBy === 'source') key = log.source;
@@ -62,6 +69,7 @@ function ReportsPage() {
     return entries.map(([key, stat]) => ({ key, ...stat }));
   }, [logs, groupBy]);
 
+  // Pie chart data
   const pieData = useMemo(() => {
     const sources: Record<string, { income: number; outcome: number }> = {};
     logs.forEach(log => {
@@ -75,6 +83,7 @@ function ReportsPage() {
     }));
   }, [logs]);
 
+  // Bar chart data
   const barData = useMemo(() => {
     const months: Record<string, number> = {};
     logs.forEach(log => {
@@ -87,15 +96,22 @@ function ReportsPage() {
       .map(([month, net]) => ({ month, net }));
   }, [logs]);
 
+  // Line chart data
   const lineData = useMemo(() => {
     let sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
     let total = 0;
     return sorted.map(log => {
       total += log.type === 'income' ? log.amount : -log.amount;
-      return { date: log.date, net: total };
+      return { date: formatDate(log.date), net: total };
     });
   }, [logs]);
 
+  // Summary
+  const summaryIncome = logs.filter(l => l.type === 'income').reduce((sum, l) => sum + l.amount, 0);
+  const summaryOutcome = logs.filter(l => l.type === 'outcome').reduce((sum, l) => sum + l.amount, 0);
+  const netTotal = summaryIncome - summaryOutcome;
+
+  // PDF Download
   const handleDownloadPDF = () => {
     if (reportRef.current) {
       html2pdf().from(reportRef.current).set({
@@ -109,16 +125,16 @@ function ReportsPage() {
   };
 
   return (
-    <div className="space-y-10 px-4 pb-16">
-      {/* Header & Group Controls */}
+    <div className="space-y-10 px-2 sm:px-4 pb-16">
+      {/* Header & Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        <h1 className="text-2xl font-bold text-purple-300">📊 Financial Reports</h1>
-        <div className="flex gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-purple-300">📊 Financial Reports</h1>
+        <div className="flex gap-2 flex-wrap">
           {GROUP_OPTIONS.map(opt => (
             <button
               key={opt.value}
               onClick={() => setGroupBy(opt.value)}
-              className={`px-3 py-1 rounded-lg text-sm font-semibold transition-colors duration-100 ${
+              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-semibold transition-colors duration-100 ${
                 groupBy === opt.value
                   ? 'bg-purple-700 text-white shadow'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -129,17 +145,33 @@ function ReportsPage() {
           ))}
           <button
             onClick={handleDownloadPDF}
-            className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold"
+            className="bg-blue-700 hover:bg-blue-800 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm"
           >
             📄 Download PDF
+          </button>
+          <button
+            className="sm:hidden bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-semibold text-xs"
+            onClick={() => setShowCharts(v => !v)}
+          >
+            {showCharts ? 'Hide Charts' : 'Show Charts'}
           </button>
         </div>
       </div>
 
       <div ref={reportRef}>
+        {/* Summary Bar */}
+        <div className="flex flex-wrap gap-4 justify-center mb-4">
+          <div className="bg-green-800/80 text-green-200 px-4 py-2 rounded-lg font-bold text-xs sm:text-base">Total Income: {summaryIncome.toFixed(2)} DA</div>
+          <div className="bg-red-800/80 text-red-200 px-4 py-2 rounded-lg font-bold text-xs sm:text-base">Total Outcome: {summaryOutcome.toFixed(2)} DA</div>
+          <div className={`px-4 py-2 rounded-lg font-bold text-xs sm:text-base ${netTotal >= 0 ? 'bg-green-700/80 text-green-100' : 'bg-red-700/80 text-red-100'}`}>
+            Net: {netTotal.toFixed(2)} DA
+          </div>
+        </div>
+
         {/* Charts Section */}
+        {showCharts && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-gray-900/70 p-6 rounded-xl shadow-xl border border-gray-700">
+          <div className="bg-gray-900/70 p-4 sm:p-6 rounded-xl shadow-xl border border-gray-700">
             <h2 className="text-lg font-bold text-white mb-4 text-center">🥧 Income vs Outcome by Source</h2>
             <ResponsiveContainer width="100%" height={300}>
               <RPieChart>
@@ -153,7 +185,7 @@ function ReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-gray-900/70 p-6 rounded-xl shadow-xl border border-gray-700">
+          <div className="bg-gray-900/70 p-4 sm:p-6 rounded-xl shadow-xl border border-gray-700">
             <h2 className="text-lg font-bold text-white mb-4 text-center">📈 Net by Month</h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={barData}>
@@ -166,9 +198,11 @@ function ReportsPage() {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
         {/* Line Chart */}
-        <div className="bg-gray-900/70 p-6 rounded-xl shadow-xl border border-gray-700 mt-8">
+        {showCharts && (
+        <div className="bg-gray-900/70 p-4 sm:p-6 rounded-xl shadow-xl border border-gray-700 mt-8">
           <h2 className="text-lg font-bold text-white mb-4 text-center">📊 Cumulative Net Over Time</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={lineData}>
@@ -180,30 +214,36 @@ function ReportsPage() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        )}
 
         {/* Table Section */}
-        <div className="bg-gray-900/70 p-6 rounded-xl shadow-xl border border-gray-700 overflow-x-auto mt-8">
+        <div className="bg-gray-900/70 p-4 sm:p-6 rounded-xl shadow-xl border border-gray-700 overflow-x-auto mt-8">
           <h2 className="text-lg font-bold text-white mb-4">📅 Grouped Summary</h2>
-          <table className="w-full text-left text-sm text-white">
+          <table className="w-full min-w-[600px] text-left text-xs sm:text-sm text-white">
             <thead>
               <tr className="bg-gray-800 text-purple-300">
-                <th className="px-4 py-2 capitalize">
+                <th className="px-2 sm:px-4 py-2 capitalize">
                   {groupBy === 'source' ? 'Source' : groupBy}
                 </th>
-                <th className="px-4 py-2">Income</th>
-                <th className="px-4 py-2">Outcome</th>
-                <th className="px-4 py-2">Net</th>
+                <th className="px-2 sm:px-4 py-2">Income</th>
+                <th className="px-2 sm:px-4 py-2">Outcome</th>
+                <th className="px-2 sm:px-4 py-2">Net</th>
               </tr>
             </thead>
             <tbody>
               {groupedStats.length > 0 ? (
                 groupedStats.map(stat => (
                   <tr key={stat.key} className="border-b border-gray-700 hover:bg-gray-800/40">
-                    <td className="px-4 py-2">{stat.key}</td>
-                    <td className="px-4 py-2 text-green-400">{stat.income} DA</td>
-                    <td className="px-4 py-2 text-red-400">{stat.outcome} DA</td>
-                    <td className={`px-4 py-2 font-bold ${stat.net >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                      {stat.net} DA <span>{stat.net >= 0 ? '📈' : '📉'}</span>
+                    <td className="px-2 sm:px-4 py-2">
+                      {groupBy === 'day' || groupBy === 'week' || groupBy === 'month'
+                        ? stat.key
+                        : <span className="inline-block px-2 py-1 rounded bg-blue-900 text-blue-200 font-bold">{stat.key}</span>
+                      }
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 text-green-400">{stat.income.toFixed(2)} DA</td>
+                    <td className="px-2 sm:px-4 py-2 text-red-400">{stat.outcome.toFixed(2)} DA</td>
+                    <td className={`px-2 sm:px-4 py-2 font-bold ${stat.net >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      {stat.net.toFixed(2)} DA <span>{stat.net >= 0 ? '📈' : '📉'}</span>
                     </td>
                   </tr>
                 ))

@@ -1,21 +1,11 @@
-import { useState } from "react";
-import {
-  Plus,
-  X,
-  ShoppingCart,
-  CupSoda,
-  Cookie,
-  Loader2,
-  Settings2,
-  BarChart3,
-  AlertTriangle,
-  Trash2,
-  CheckCircle2,
-} from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import {Plus, X, ShoppingCart, CupSoda, Cookie, Loader2, Settings2, BarChart3, ClipboardMinus, AlertTriangle,Trash2, CheckCircle2, QrCode} from "lucide-react";
 import { useConsumation } from "../context/ConsumationContext";
 import ConsumationReport from "../components/ConsumationReport";
 import toast from "react-hot-toast";
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
+import { printReceipt } from '../hooks/printReceipt';
 
 function ConsumationPage() {
   const {
@@ -23,6 +13,7 @@ function ConsumationPage() {
     drinkables,
     addConsumable,
     sellConsumable,
+    multiSellConsumable,
     revenue,
     fetchConsumables,
     updateConsumable,
@@ -36,7 +27,9 @@ function ConsumationPage() {
   const [addUnitPrice, setAddUnitPrice] = useState(0);
   const [addTotalCost, setAddTotalCost] = useState(0);
   const [addSellPrice, setAddSellPrice] = useState(0);
+  const [addBarcode, setAddBarcode] = useState(""); // <-- Add this state
   const { user } = useAuth();
+  const { settings } = useSettings();
 
   const [sellModal, setSellModal] = useState<{
     id: number;
@@ -70,6 +63,34 @@ function ConsumationPage() {
   const [selectedToDelete, setSelectedToDelete] = useState<Set<number>>(new Set());
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Barcode scanner state
+  const [showScanner, setShowScanner] = useState(false); // <-- Add this state
+  const [barcodeResult, setBarcodeResult] = useState<any>(null);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [scannedItems, setScannedItems] = useState<any[]>([]); // <-- New state for scanned items
+  const barcodeScannerInputRef = useRef<HTMLInputElement>(null);
+  const addBarcodeInputRef = useRef<HTMLInputElement>(null);  // Listen for barcode input (keyboard) when scanner is shown
+  const [lastScannedBarcode, setLastScannedBarcode] = useState("");
+  useEffect(() => {
+    if (showAddModal && addBarcodeInputRef.current) {
+      addBarcodeInputRef.current.focus();
+    }
+  }, [showAddModal]);
+  
+useEffect(() => {
+  if (showScanner && barcodeScannerInputRef.current) {
+    barcodeScannerInputRef.current.focus();
+  }
+}, [showScanner]);
+
+  // Play sound effect if enabled in settings
+  const playSound = () => {
+    if (settings?.soundEffects) {
+      const audio = new Audio('/sounds/click.wav'); // Put your sound in /public/sounds/
+      audio.play();
+    }
+  };
+
   const openAddModal = (type: "eatable" | "drinkable") => {
     setAddType(type);
     setShowAddModal(true);
@@ -78,6 +99,7 @@ function ConsumationPage() {
     setAddUnitPrice(0);
     setAddTotalCost(0);
     setAddSellPrice(0);
+    setAddBarcode(""); // <-- Reset barcode
   };
 
   const handleAdd = async () => {
@@ -89,6 +111,7 @@ function ConsumationPage() {
       unit_price: addUnitPrice,
       total_cost: addTotalCost,
       sell_price: addSellPrice,
+      barcode: addBarcode, // <-- Include barcode
     });
     setAddLoading(false);
     setShowAddModal(false);
@@ -97,6 +120,7 @@ function ConsumationPage() {
     setAddUnitPrice(0);
     setAddTotalCost(0);
     setAddSellPrice(0);
+    setAddBarcode(""); // <-- Reset barcode
     fetchConsumables();
     toast.success(`${addType === "eatable" ? "Eatable" : "Drinkable"} added successfully!`);
   };
@@ -177,51 +201,333 @@ function ConsumationPage() {
     });
   };
 
+  const eatablesScrollRef = useRef<HTMLUListElement>(null);
+  const [isEatablesDown, setIsEatablesDown] = useState(false);
+  const [eatablesStartY, setEatablesStartY] = useState(0);
+  const [eatablesScrollTop, setEatablesScrollTop] = useState(0);
+
+  const handleEatablesMouseDown = (e: React.MouseEvent) => {
+    setIsEatablesDown(true);
+    setEatablesStartY(e.pageY - (eatablesScrollRef.current?.offsetTop || 0));
+    setEatablesScrollTop(eatablesScrollRef.current?.scrollTop || 0);
+  };
+  const handleEatablesMouseLeave = () => setIsEatablesDown(false);
+  const handleEatablesMouseUp = () => setIsEatablesDown(false);
+  const handleEatablesMouseMove = (e: React.MouseEvent) => {
+    if (!isEatablesDown) return;
+    e.preventDefault();
+    const y = e.pageY - (eatablesScrollRef.current?.offsetTop || 0);
+    const walk = (y - eatablesStartY) * 1.5;
+    if (eatablesScrollRef.current)
+      eatablesScrollRef.current.scrollTop = eatablesScrollTop - walk;
+  };
+
+  // Refs and drag state for drinkables
+  const drinkablesScrollRef = useRef<HTMLUListElement>(null);
+  const [isDrinkablesDown, setIsDrinkablesDown] = useState(false);
+  const [drinkablesStartY, setDrinkablesStartY] = useState(0);
+  const [drinkablesScrollTop, setDrinkablesScrollTop] = useState(0);
+
+  const handleDrinkablesMouseDown = (e: React.MouseEvent) => {
+    setIsDrinkablesDown(true);
+    setDrinkablesStartY(e.pageY - (drinkablesScrollRef.current?.offsetTop || 0));
+    setDrinkablesScrollTop(drinkablesScrollRef.current?.scrollTop || 0);
+  };
+  const handleDrinkablesMouseLeave = () => setIsDrinkablesDown(false);
+  const handleDrinkablesMouseUp = () => setIsDrinkablesDown(false);
+  const handleDrinkablesMouseMove = (e: React.MouseEvent) => {
+    if (!isDrinkablesDown) return;
+    e.preventDefault();
+    const y = e.pageY - (drinkablesScrollRef.current?.offsetTop || 0);
+    const walk = (y - drinkablesStartY) * 1.5;
+    if (drinkablesScrollRef.current)
+      drinkablesScrollRef.current.scrollTop = drinkablesScrollTop - walk;
+  };
+
+  // --- Barcode Scanner Modal ---
+const handleBarcodeScan = useCallback(() => {
+  if (!barcodeInput) return;
+  const allItems = [...eatables, ...drinkables];
+  const found = allItems.find(item => item.barcode === barcodeInput.trim());
+  if (found) {
+    setScannedItems(items => {
+      const idx = items.findIndex(it => it.id === found.id);
+      if (idx !== -1) {
+        return items.map((it, i) =>
+          i === idx ? { ...it, _qty: (it._qty || 1) + 1 } : it
+        );
+      }
+      return [...items, { ...found, _qty: 1 }];
+    });
+    setLastScannedBarcode(barcodeInput); // <-- Save last scanned
+    setBarcodeInput("");
+    playSound && playSound();
+    setTimeout(() => {
+      barcodeScannerInputRef.current?.focus();
+    }, 100);
+  } else {
+    toast.error("No item found for this barcode.");
+    setTimeout(() => {
+      barcodeScannerInputRef.current?.focus();
+    }, 100);
+  }
+}, [barcodeInput, eatables, drinkables, playSound]);
+
   if (showReport) {
     return <ConsumationReport onBack={() => setShowReport(false)} />;
   }
 
-
-
   return (
+    <>
+    {/* Main container for floating button and content */}
+    <div className="relative">    
     <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-
-      {/* Revenue Stats */}
+      {/* Floating Toggle Button - top right corner */}
+      <div className="absolute top-0 right-0 z-20 m-2 md:translate-x-[200%] md:m-0">
+        <div className="group relative">
+          <button
+            className="bg-green-700 hover:bg-green-800 text-white p-3 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200"
+            onClick={() => {
+              setShowScanner((prev) => !prev);
+              setBarcodeResult(null);
+            }}
+            aria-label={showScanner ? "Show Revenue Cards" : "Show Barcode Scanner"}
+          >
+            {showScanner ? (
+              <BarChart3 className="w-6 h-6" />
+            ) : (
+              <QrCode className="w-6 h-6" />
+            )}
+          </button>
+          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-gray-900 text-white text-xs rounded px-3 py-1 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap shadow-lg z-10">
+            {showScanner ? "Show Revenue Cards" : "Show Barcode Scanner"}
+          </span>
+        </div>
+      </div>
+      {!showScanner ? (
+        <>
       {user?.role === 'admin' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           {[
             {
               color: 'green',
               icon: <ShoppingCart className="w-10 h-10 text-green-200" />,
               label: "Today's Revenue",
-              value: revenue.today,
+              value: typeof revenue === 'object' && revenue !== null && 'today' in revenue ? (revenue as any).today : revenue,
             },
             {
               color: 'yellow',
               icon: <Cookie className="w-10 h-10 text-yellow-200" />,
               label: 'This Week',
-              value: revenue.week,
+              value: typeof revenue === 'object' && revenue !== null && 'week' in revenue ? (revenue as any).week : revenue,
             },
             {
               color: 'blue',
               icon: <CupSoda className="w-10 h-10 text-blue-200" />,
               label: 'This Month',
-              value: revenue.month,
+              value: typeof revenue === 'object' && revenue !== null && 'month' in revenue ? (revenue as any).month : revenue,
             },
           ].map((item, idx) => (
             <div
               key={idx}
-              className={`bg-${item.color}-600 rounded-xl p-6 flex items-center space-x-4 shadow-lg`}
+              className={`bg-${item.color}-600 rounded-xl p-5 flex flex-col items-center shadow-lg`}
             >
-              {item.icon}
-              <div>
-                <div className="text-gray-200 text-sm">{item.label}</div>
-                <div className="text-2xl font-bold text-white">{item.value} DA</div>
+              <div className="flex items-center gap-2 mb-2">
+                {item.icon}
+                <span className="text-1xl font-bold text-white">{item.value} DA</span>
+              </div>
+              <div className="w-full">
+                <div className="text-xs text-gray-200 uppercase tracking-widest text-center truncate">
+                  {item.label.split(' ').map((word, i) => (
+                    <span key={i}>
+                      {word}
+                      {i !== item.label.split(' ').length - 1 && <br />}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+      </>
+     ) : (
+        // Barcode Scanner UI
+        <div className="flex flex-col items-center justify-center mb-8">
+      <div className="bg-gray-900 p-6 rounded-xl border border-gray-700 w-full relative"> 
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-200"
+              onClick={() => {
+                setShowScanner(false);
+                setBarcodeInput("");
+                setScannedItems([]); // <-- Clear scanned items on close
+              }}
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <QrCode className="w-6 h-6" /> Scan or Enter Barcode
+            </h2>
+            {/* Barcode Scan Section (always visible when showScanner) */}
+            {showScanner && (
+              <div className="w-full flex flex-col md:flex-row gap-4 bg-gray-900/80 rounded-xl p-4 mb-8 border border-gray-700">
+                {/* Left: Barcode input */}
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <h3 className="text-white font-bold mb-2 flex items-center gap-2">
+                    <QrCode className="w-6 h-6" /> Scan Barcode
+                  </h3>
+                  <input
+                    ref={barcodeScannerInputRef}
+                    type="text"
+                    value={barcodeInput}
+                    onChange={e => setBarcodeInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        handleBarcodeScan();
+                      }
+                    }}
+                    className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white mb-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-lg tracking-widest"
+                    placeholder="Scan or type barcode and press Enter"
+                    autoFocus
+                  />
+                  <div className="text-gray-400 text-sm">
+                    Last scanned: <span className="text-white">{lastScannedBarcode}</span>
+                  </div>
+                </div>
+
+                {/* Middle: List of scanned items */}
+                <div className="flex-[2]">
+                  <h3 className="text-white font-bold mb-2 text-center">Scanned Items</h3>
+
+                  <ul   
+                    className="divide-y divide-gray-700 max-h-[220px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 cursor-grab"
+                    style={{ minHeight: 60 }}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const data = e.dataTransfer.getData("application/json");
+                      if (!data) return;
+                      const item = JSON.parse(data);
+                      setScannedItems(items => {
+                        const idx = items.findIndex(it => it.id === item.id);
+                        if (idx !== -1) {
+                          // Increment quantity if already scanned
+                          return items.map((it, i) =>
+                            i === idx ? { ...it, _qty: (it._qty || 1) + 1 } : it
+                          );
+                        }
+                        // Add new item with quantity 1
+                        return [...items, { ...item, _qty: 1 }];
+                      });
+                      setLastScannedBarcode(item.barcode || "");
+                      playSound && playSound();
+                    }}
+                  >
+                    {scannedItems.length > 0 ? (
+                      scannedItems.map((item, idx) => (
+                      <li key={item.id + '-' + idx} className="py-2 flex flex-col md:flex-row md:items-center md:justify-between text-white gap-2">
+                        <div className="flex-1">
+                          <span className="font-semibold">{item.name}</span>
+                          <span className="ml-2 text-sm text-gray-400">Stock: {item.stock}</span>
+                          <span className="ml-2 font-bold">{Number(item.sell_price).toFixed(2)} DA</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 md:mt-0">
+                          <input
+                            type="number"
+                            min={1}
+                            max={item.stock}
+                            value={item._qty || 1}
+                            onChange={e => {
+                              const qty = Math.max(1, Math.min(Number(e.target.value), item.stock));
+                              setScannedItems(items =>
+                                items.map((it, i) => i === idx ? { ...it, _qty: qty } : it)
+                              );
+                            }}
+                            className="w-16 px-2 py-1 rounded bg-gray-800 border border-gray-700 text-white"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            value={item._price ?? item.sell_price}
+                            onChange={e => {
+                              setScannedItems(items =>
+                                items.map((it, i) => i === idx ? { ...it, _price: Number(e.target.value) } : it)
+                              );
+                            }}
+                            className="w-20 px-2 py-1 rounded bg-gray-800 border border-gray-700 text-white"
+                            placeholder="Price"
+                          />
+                        <div className="relative group">
+                        <button
+                          className="bg-red-700 hover:bg-red-800 px-2 py-1 rounded text-white"
+                          onClick={() =>
+                            setScannedItems(items =>
+                              items.filter((it, i) =>
+                                i === idx
+                                  ? (it._qty || 1) > 1 // If qty > 1, keep and decrement; else remove
+                                    ? (items[i] = { ...it, _qty: (it._qty || 1) - 1 }) && true
+                                    : false
+                                  : true
+                              )
+                            )
+                          }
+                        >
+                          <ClipboardMinus/>
+                        </button>
+                        <span className="absolute right-1/2 -translate-x-1/2 top-full mt-2 bg-gray-900 text-white text-xs rounded px-3 py-1 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap shadow-lg z-20">
+                          double click to remove item
+                        </span>
+                        </div>
+                      </div>
+                      </li>
+                    )) 
+                  ) : (
+                    <li className="text-gray-400 text-center py-8 bg-transparent rounded-xl col-span-3">
+                      No items scanned yet.
+                    </li>
+                  )}
+                </ul>
+                </div>
+
+                {/* Right: Total and confirm */}
+                <div className="flex-1 flex flex-col items-center justify-center border-l border-gray-700 pl-4">
+                  <h3 className="text-white font-bold mb-2">Total</h3>
+                  <div className="text-3xl font-bold text-green-400 mb-4">
+                    {scannedItems.reduce((sum, item) => sum + (item._qty || 1) * (item._price ?? item.sell_price), 0).toFixed(2)} DA
+                  </div>
+                  <button
+                    className="w-full bg-green-700 hover:bg-green-800 text-white py-2 rounded mb-2"
+                    disabled={scannedItems.length === 0}
+                    onClick={async () => {            
+                      await multiSellConsumable(scannedItems);
+                      printReceipt(scannedItems, settings?.businessName || "My Shop");
+                      toast.success("Sale confirmed!");
+                      setScannedItems([]);
+                      setBarcodeInput("");
+                      fetchConsumables();
+                    }}
+                  >
+                    Confirm All
+                  </button>
+                  <button
+                    className="w-full bg-gray-700 hover:bg-gray-800 text-white py-2 rounded"
+                      onClick={() => {
+                        setScannedItems([]);
+                        setTimeout(() => {
+                          barcodeScannerInputRef.current?.focus();
+                        }, 100);
+                      }}
+                      disabled={scannedItems.length === 0}
+                    >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}  
 
       {/* Search and filter */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3 bg-gray-900/60 p-4 rounded-xl border border-gray-700">
@@ -292,18 +598,33 @@ function ConsumationPage() {
             </button>              
             )}
           </div>
+          {/* Eatables List */}
           <ul
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+            ref={eatablesScrollRef}
+            className={`grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[420px] overflow-x-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 ${isEatablesDown ? "cursor-grabbing" : "cursor-grab"} select-none`}
             style={{ minHeight: 180 }}
+            onMouseDown={handleEatablesMouseDown}
+            onMouseLeave={handleEatablesMouseLeave}
+            onMouseUp={handleEatablesMouseUp}
+            onMouseMove={handleEatablesMouseMove}
           >
             {eatables
-              .filter((item) => !outOfStockOnly || Number(item.stock) === 0)
               .filter((item) =>
                 item.name.toLowerCase().includes(search.toLowerCase())
               )
+              .sort((a, b) => {
+                if (Number(a.stock) === 0 && Number(b.stock) !== 0) return 1;
+                if (Number(a.stock) !== 0 && Number(b.stock) === 0) return -1;
+                return 0;
+              })
+              .filter((item) => !outOfStockOnly || Number(item.stock) === 0)
               .map((item) => (
                 <li
                   key={item.id}
+                  draggable
+                  onDragStart={e => {
+                    e.dataTransfer.setData("application/json", JSON.stringify(item));
+                  }}
                   className={`flex flex-col justify-between bg-gray-800/80 p-4 rounded-xl shadow relative transition-all duration-100
                   ${
                     outOfStockOnly && Number(item.stock) === 0
@@ -332,9 +653,9 @@ function ConsumationPage() {
                         <CheckCircle2 className="w-4 h-4 ml-1 text-red-500" />
                       )}
                     </div>
-                    <div className="text-sm text-gray-300">
-                      Stock: <span className="font-bold">{item.stock}</span> |{" "}
-                      <span className="font-bold">{item.sell_price} DA</span>
+                    <div className="text-sm text-gray-300 mt-2 flex flex-col items-start">
+                      <span>Stock: <span className="font-bold">{item.stock}</span></span>
+                      <span className="font-bold">{Number(item.sell_price).toFixed(2)} DA</span>
                     </div>
                   </div>
                   {/* Actions */}
@@ -403,17 +724,31 @@ function ConsumationPage() {
 
           </div>
           <ul
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+            ref={drinkablesScrollRef}
+            className={`grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[420px] overflow-x-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 ${isDrinkablesDown ? "cursor-grabbing" : "cursor-grab"} select-none`}
             style={{ minHeight: 180 }}
+            onMouseDown={handleDrinkablesMouseDown}
+            onMouseLeave={handleDrinkablesMouseLeave}
+            onMouseUp={handleDrinkablesMouseUp}
+            onMouseMove={handleDrinkablesMouseMove}
           >
             {drinkables
-              .filter((item) => !outOfStockOnly || Number(item.stock) === 0)
               .filter((item) =>
                 item.name.toLowerCase().includes(search.toLowerCase())
               )
+              .sort((a, b) => {
+                if (Number(a.stock) === 0 && Number(b.stock) !== 0) return 1;
+                if (Number(a.stock) !== 0 && Number(b.stock) === 0) return -1;
+                return 0;
+              })
+              .filter((item) => !outOfStockOnly || Number(item.stock) === 0)
               .map((item) => (
                 <li
                   key={item.id}
+                  draggable
+                  onDragStart={e => {
+                    e.dataTransfer.setData("application/json", JSON.stringify(item));
+                  }}
                   className={`flex flex-col justify-between bg-gray-800/80 p-4 rounded-xl shadow relative transition-all duration-100
                   ${
                     outOfStockOnly && Number(item.stock) === 0
@@ -442,52 +777,52 @@ function ConsumationPage() {
                         <CheckCircle2 className="w-4 h-4 ml-1 text-red-500" />
                       )}
                     </div>
-                    <div className="text-sm text-gray-300">
-                      Stock: <span className="font-bold">{item.stock}</span> |{" "}
-                      <span className="font-bold">{item.sell_price} DA</span>
+                    <div className="text-sm text-gray-300 mt-2 flex flex-col items-start">
+                      <span>Stock: <span className="font-bold">{item.stock}</span></span>
+                      <span className="font-bold">{Number(item.sell_price).toFixed(2)} DA</span>
                     </div>
                   </div>
-                  {/* Actions */}
-                  <div className="flex mt-4 space-x-2">
-                    <button
-                      className={`px-3 py-1 rounded flex-1 flex items-center justify-center
-                      ${
-                        Number(item.stock) === 0
-                          ? "bg-red-600 cursor-not-allowed opacity-70"
-                          : "bg-green-600 hover:bg-green-700"
-                      }
-                      text-white`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSellModal({
-                          id: item.id,
-                          name: item.name,
-                          stock: item.stock,
-                          price: item.sell_price,
-                        });
-                      }}
-                      disabled={Number(item.stock) === 0}
-                    >
-                      Sell
-                    </button>
-                    <button
-                      className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(item);
-                      }}
-                    >
-                      <Settings2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {/* Overlay for out of stock and in delete mode */}
-                  {outOfStockOnly &&
-                    Number(item.stock) === 0 &&
-                    selectedToDelete.has(item.id) && (
-                      <div className="absolute inset-0 bg-red-700/10 rounded-xl pointer-events-none transition-all duration-100" />
-                    )}
-                </li>
-              ))}
+                            {/* Actions */}
+                            <div className="flex mt-4 space-x-2">
+                              <button
+                                className={`px-3 py-1 rounded flex-1 flex items-center justify-center
+                                ${
+                                  Number(item.stock) === 0
+                                    ? "bg-red-600 cursor-not-allowed opacity-70"
+                                    : "bg-green-600 hover:bg-green-700"
+                                }
+                                text-white`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSellModal({
+                                    id: item.id,
+                                    name: item.name,
+                                    stock: item.stock,
+                                    price: item.sell_price,
+                                  });
+                                }}
+                                disabled={Number(item.stock) === 0}
+                              >
+                                Sell
+                              </button>
+                              <button
+                                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded flex items-center justify-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditModal(item);
+                                }}
+                              >
+                                <Settings2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                            {/* Overlay for out of stock and in delete mode */}
+                            {outOfStockOnly &&
+                              Number(item.stock) === 0 &&
+                              selectedToDelete.has(item.id) && (
+                                <div className="absolute inset-0 bg-red-700/10 rounded-xl pointer-events-none transition-all duration-100" />
+                              )}
+                          </li>
+                        ))}
             {drinkables.length === 0 && (
               <li className="text-gray-400 text-center py-8 bg-gray-800/60 rounded-xl col-span-3">
                 No drinkables found.
@@ -498,13 +833,13 @@ function ConsumationPage() {
       </div>
 
       {/* Floating Add Button (Mobile) */}
-      <button
+      {/* <button
         className="fixed bottom-8 right-8 bg-purple-700 hover:bg-purple-800 text-white p-4 rounded-full shadow-lg flex items-center justify-center z-50 md:hidden"
         onClick={() => setShowAddModal(true)}
         title="Add Consumable"
       >
         <Plus className="w-7 h-7" />
-      </button>
+      </button> */}
 
       {/* Add Modal */}
       {showAddModal && (
@@ -560,7 +895,7 @@ function ConsumationPage() {
                 className="bg-gray-800 border-gray-700 text-white w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
-            <div className="mb-6">
+            <div className="mb-3">
               <label className="block mb-1 text-white">Sell Price (DA)</label>
               <input
                 type="number"
@@ -568,6 +903,17 @@ function ConsumationPage() {
                 value={addSellPrice}
                 onChange={(e) => setAddSellPrice(Number(e.target.value))}
                 className="bg-gray-800 border-gray-700 text-white w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block mb-1 text-white">Barcode</label>
+              <input
+                ref={addBarcodeInputRef}
+                type="text"
+                value={addBarcode}
+                onChange={(e) => setAddBarcode(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Enter barcode"
               />
             </div>
             <div className="flex justify-end space-x-2">
@@ -579,7 +925,7 @@ function ConsumationPage() {
               </button>
               <button
                 className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded flex items-center justify-center"
-                onClick={handleAdd}
+                onClick={() => { handleAdd(); playSound(); }}
                 disabled={
                   addLoading ||
                   !addName ||
@@ -636,7 +982,7 @@ function ConsumationPage() {
               </button>
               <button
                 className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded flex items-center justify-center"
-                onClick={handleSell}
+                onClick={() => { handleSell(); playSound(); }}
                 disabled={
                   sellLoading || sellAmount < 1 || sellAmount > sellModal.stock
                 }
@@ -733,6 +1079,8 @@ function ConsumationPage() {
         </div>
       )}
     </div>
+  </div>
+    </>
   );
 }
 
